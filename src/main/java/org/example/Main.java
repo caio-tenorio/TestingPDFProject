@@ -24,10 +24,10 @@ public class Main {
         resource.print("consectetur adipiscing elit,");
         resource.print("Excepteur sint occaecat cupidatat non proident,");
         resource.print("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
-        resource.print("Excepteur sint occaecat cupidatat non proident,");
+        resource.print("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
         Integer[] myIntArray = new Integer[]{1, 2, 9};
         resource.printBarcode("1234567890", myIntArray);
-
+        resource.print("Excepteur sint occaecat cupidatat non proident");
 
         System.out.println(resource.getBase64PDFBytes());
 

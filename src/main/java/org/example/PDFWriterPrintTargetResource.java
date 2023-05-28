@@ -57,7 +57,7 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
         this.document = new PDDocument();
 //        PDPage page = new PDPage(new PDRectangle(mmToPt(98), mmToPt(2000)));
 //        this.document.addPage(page);
-        this.pageSize = PDRectangle.A6;
+        this.pageSize = new PDRectangle(mmToPt(98), mmToPt(2000));
         this.pageWidth = pageSize.getWidth();
         this.pageHeight = pageSize.getHeight();
 
@@ -141,22 +141,22 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
     private static List<String> wrapTextLine(String text, float maxLineWidth) throws IOException {
         List<String> wrappedLines = new ArrayList<>();
 
-        StringBuilder currentLine = new StringBuilder();
+        StringBuilder currentTextLine = new StringBuilder();
         String[] words = text.split(" ");
 
         for (String word : words) {
             float wordWidth = FONT_DEFAULT.getStringWidth(word) / 1000 * FONT_SIZE;
 
-            if (currentLine.length() == 0 || FONT_DEFAULT.getStringWidth(currentLine.toString() + " " + word) / 1000 * FONT_SIZE <= maxLineWidth) {
-                currentLine.append(word).append(" ");
+            if (currentTextLine.length() == 0 || FONT_DEFAULT.getStringWidth(currentTextLine.toString() + " " + word) / 1000 * FONT_SIZE <= maxLineWidth) {
+                currentTextLine.append(word).append(" ");
             } else {
-                wrappedLines.add(currentLine.toString().trim());
-                currentLine = new StringBuilder(word + " ");
+                wrappedLines.add(currentTextLine.toString().trim());
+                currentTextLine = new StringBuilder(word + " ");
             }
         }
 
-        if (currentLine.length() > 0) {
-            wrappedLines.add(currentLine.toString().trim());
+        if (currentTextLine.length() > 0) {
+            wrappedLines.add(currentTextLine.toString().trim());
         }
 
         return wrappedLines;
@@ -166,7 +166,9 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
      *
      */
     @Override
-    public TargetResourceAdpter<PDDocument> printImage(ByteArrayInputStream imgBytes) {
+    public TargetResourceAdpter<PDDocument> printImage(ByteArrayInputStream imgBytes) { //TODO: Checar e testar essa classe
+        //TODO: Checar espaço disponível na página e criar página nova caso necessário
+
         try {
             BufferedImage image = ImageIO.read(imgBytes);
             PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
@@ -185,9 +187,10 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
      */
     @Override
     public TargetResourceAdpter<PDDocument> printBarcode(String code, Integer... params) throws PrinterException {
+        //TODO: Checar espaço disponível na página e criar página nova caso necessário
         try {
-            int width = 350;
-            int height = 350;
+            int width = 350; //TODO: checar tamanhos
+            int height = 350; //TODO: checar tamanhos
             Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
             hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-8");
             hintMap.put(EncodeHintType.MARGIN, 0);
@@ -199,11 +202,11 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
 
             if (params != null && params.length > 1 && params[2] == TiposCodigoBarra.QRCODE) {
                 byteMatrix = writer.encode(code, BarcodeFormat.QR_CODE, width, height, hintMap);
-                image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             } else {
                 byteMatrix = writer.encode(code, BarcodeFormat.CODE_128, width, height, hintMap);
-                image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             }
+
+            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
             Graphics2D graphics = image.createGraphics();
             graphics.setColor(Color.WHITE);
@@ -221,13 +224,23 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
 
             PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
 
-            if (params != null && params.length > 1 && params[2] == TiposCodigoBarra.QRCODE) {
-                contentStream.drawImage(pdImage, mmToPt(3), mmToPt(3), mmToPt(50), mmToPt(50));
-            } else {
-                contentStream.drawImage(pdImage, mmToPt(3), mmToPt(3), mmToPt(80), mmToPt(30));
-            }
+            float lineY = this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight;
+            float barcodeHeight; // Altura do código de barras
+            int barcodeLines;
 
-            contentStream.close();
+            if (params != null && params.length > 1 && params[2] == TiposCodigoBarra.QRCODE) {
+                barcodeHeight = mmToPt(50);
+                lineY = lineY - barcodeHeight;
+                contentStream.drawImage(pdImage, startX, lineY, mmToPt(50), mmToPt(50)); //TODO: Checar tamanhos
+            } else {
+                barcodeHeight = mmToPt(30);
+                lineY = lineY - barcodeHeight;
+                contentStream.drawImage(pdImage, startX, lineY, mmToPt(80), mmToPt(30)); //TODO: Checar tamanhos
+            }
+            // Quantidade de linhas ocupadas pelo codigo de barra arredonado para cima
+            barcodeLines = (int) Math.ceil(barcodeHeight / this.lineHeight);
+            // Atualizando linha atual baseado na quantidade de linhas ocupadas pelo código de barras
+            currentLine += barcodeLines + 1;
         } catch (Throwable e) {
             throw new PrinterException("Erro ao criar linha para PDF", e);
         }
