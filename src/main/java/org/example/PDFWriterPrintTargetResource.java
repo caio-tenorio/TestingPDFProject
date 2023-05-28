@@ -145,8 +145,6 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
         String[] words = text.split(" ");
 
         for (String word : words) {
-            float wordWidth = FONT_DEFAULT.getStringWidth(word) / 1000 * FONT_SIZE;
-
             if (currentTextLine.length() == 0 || FONT_DEFAULT.getStringWidth(currentTextLine.toString() + " " + word) / 1000 * FONT_SIZE <= maxLineWidth) {
                 currentTextLine.append(word).append(" ");
             } else {
@@ -187,7 +185,7 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
      */
     @Override
     public TargetResourceAdpter<PDDocument> printBarcode(String code, Integer... params) throws PrinterException {
-        //TODO: Checar espaço disponível na página e criar página nova caso necessário
+            //TODO: Checar espaço disponível na página e criar página nova caso necessário
         try {
             int width = 350; //TODO: checar tamanhos
             int height = 350; //TODO: checar tamanhos
@@ -253,8 +251,6 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
     @Override
     public TargetResourceAdpter<PDDocument> cutSignal() throws PrinterException {
         try {
-            PDPage page = this.document.getPage(0);
-            PDPageContentStream contentStream = new PDPageContentStream(this.document, page, PDPageContentStream.AppendMode.APPEND, true);
             contentStream.beginText();
             contentStream.newLine();
             contentStream.newLine();
