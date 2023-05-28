@@ -17,22 +17,43 @@ public class Main {
     private static PDType1Font font = PDType1Font.HELVETICA;
 
     public static void main(String[] args) throws IOException {
-        // Create a new document
+        PDFWriterPrintTargetResource resource = new PDFWriterPrintTargetResource();
+        resource.print("Lorem ipsum dolor sit amet,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("Excepteur sint occaecat cupidatat non proident,");
+        resource.print("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
+        resource.print("Excepteur sint occaecat cupidatat non proident,");
+        Integer[] myIntArray = new Integer[]{1, 2, 9};
+        resource.printBarcode("1234567890", myIntArray);
+
+
+        System.out.println(resource.getBase64PDFBytes());
+
+    }
+
+    private void savingOldMain() throws IOException {
         PDDocument document = new PDDocument();
 
-
-        // Define the page dimensions
+        // Define as dimensões da pagina
         PDRectangle pageSize = PDRectangle.A6;
         float pageWidth = pageSize.getWidth();
         float pageHeight = pageSize.getHeight();
 
-        // Define the positions for the text lines
+        // Define as posicoes dos textos
         float startX = 20;
         float startY = pageHeight - 20;
         float lineHeightPercentage = 1.2f; // 120% da altura da fonte
         float lineHeight = fontSize * lineHeightPercentage;
+        int linesPerPage = (int) Math.floor(startY / lineHeight);
+        // Iterate through the text lines
+        int currentLine = 0;
+        PDPageContentStream contentStream = null;
+        PDPage currentPage = null;
 
-        int linesPerPage = 100;
+        // Define the maximum line width
+        float maxLineWidth = pageWidth - startX * 2;
 
         String testText = "Lorem ipsum dolor sit amet," +
                 "consectetur adipiscing elit," +
@@ -71,14 +92,7 @@ public class Main {
         // Define the text content
         List<String> textLines = Arrays.asList(testText.split(","));
 
-        // Iterate through the text lines
-        int currentLine = 0;
 
-        PDPageContentStream contentStream = null;
-        PDPage currentPage = null;
-
-        // Define the maximum line width
-        float maxLineWidth = pageWidth - startX * 2;
 
         for (String textLine : textLines) {
             // Split the text line if it exceeds the maximum line width
