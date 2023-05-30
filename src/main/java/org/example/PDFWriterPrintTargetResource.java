@@ -189,7 +189,9 @@ public class PDFWriterPrintTargetResource implements TargetResourceAdpter<PDDocu
             float imageHeight = mmToPt(7);
 
             float lineY = (this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight) - imageHeight;
-            contentStream.drawImage(pdImage, mmToPt(3), lineY, mmToPt(98), imageHeight);
+            // Centraliza imagem
+            float barcodeStartX = (maxLineWidth - mmToPt(98)) / 2;
+            contentStream.drawImage(pdImage, barcodeStartX, lineY, mmToPt(98), imageHeight);
             // Quantidade de linhas ocupadas pelo codigo de barra arredonado para cima
             int imageLines = (int) Math.ceil(imageHeight / this.lineHeight);
             // Atualizando linha atual baseado na quantidade de linhas ocupadas pel imagem
