@@ -25,9 +25,12 @@ public class Main {
         resource.print("Excepteur sint occaecat cupidatat non proident,");
         resource.print("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
         resource.print("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
-        Integer[] myIntArray = new Integer[]{1, 2, 9};
-        resource.printBarcode("1234567890", myIntArray);
+        resource.printBarcode("1234567890", 1, 2, 9);
+        resource.printBarcode("1234567890");
+
         resource.print("Excepteur sint occaecat cupidatat non proident");
+        resource.print("               Lorem ipsum dolor sit amet,             ");
+
 
         System.out.println(resource.getBase64PDFBytes());
 
