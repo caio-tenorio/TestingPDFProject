@@ -1,4 +1,4 @@
-package org.example;
+package com.caio;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -6,6 +6,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
@@ -14,6 +15,9 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.xml.bind.DatatypeConverter;
 
+import com.caio.measurements.MeasurementUtils;
+import com.caio.settings.page.PageLayout;
+import com.caio.settings.permissions.PermissionSettings;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
@@ -27,79 +31,48 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.example.barcode.BarcodeType;
-import org.example.barcode.BarcodeUtils;
-import org.example.font.FontSettings;
-import org.example.paper.PaperType;
-import org.example.paper.PaperUtils;
+import com.caio.barcode.BarcodeType;
+import com.caio.barcode.BarcodeUtils;
+import com.caio.paper.PaperType;
+import com.caio.paper.PaperUtils;
 
 
-public class PDFWriterIm {
-    private FontSettings fontSettings = new FontSettings();
+public class PDFQuill {
+    private final PageLayout pageLayout;
+    private final PermissionSettings permissionSettings;
+
     private byte[] pdf;
-    private float pageWidth;
-    private float pageHeight;
-    private float startX;
-    private float startY;
-    private float lineHeight;
-    private float maxLineWidth;
-    private int linesPerPage;
     private int currentLine;
-    private PaperType paperType;
+    private final PaperType paperType;
+    private boolean preserveSpaces = false;
 
-    private ByteArrayOutputStream os;
+    private final ByteArrayOutputStream os;
 
-    private PDRectangle pageSize;
-    private PDDocument document;
+    // PDF Box Classes // Internal attrs
+    private final PDRectangle pageSize;
+    private final PDDocument document;
     private PDPageContentStream contentStream;
     private PDPage currentPage;
 
-    private void setFontSettings(FontSettings fontSettings) {
-        this.fontSettings = fontSettings;
-    }
-
-    public PDFWriterIm(PaperType paperType) {
-        this.paperType = paperType;
+    public PDFQuill() {
+        this.paperType = PaperType.A4;
         this.os = new ByteArrayOutputStream();
         this.document = new PDDocument();
+
         this.pageSize = PDRectangle.A4;
-        this.pageWidth = pageSize.getWidth();
-        this.pageHeight = pageSize.getHeight();
+
+        //Settings
+        this.permissionSettings = new PermissionSettings();
+        this.pageLayout = new PageLayout(pageSize.getHeight(), pageSize.getWidth());
 
         // Define as posicoes dos textos
-        this.startX = 3;
-        this.startY = pageHeight - 8;
-        this.maxLineWidth = pageWidth - startX * 2;
-        float lineHeightPercentage = 1.40f; // 140% da altura da fonte
-        this.lineHeight = fontSettings.getFontSize() * lineHeightPercentage;
-        this.linesPerPage = (int) Math.floor(startY / lineHeight);
+
         this.currentLine = 0;
         this.contentStream = null;
         this.currentPage = null;
 
     }
 
-    private void loadDefaultSettings() {
-        this.os = new ByteArrayOutputStream();
-        this.document = new PDDocument();
-        this.pageSize = new PDRectangle(mmToPt(98), mmToPt(2000));
-        this.pageWidth = pageSize.getWidth();
-        this.pageHeight = pageSize.getHeight();
-
-        // Define as posicoes dos textos
-        // TODO: That should be defined by margins
-        this.startX = 3;
-        this.startY = pageHeight - 8;
-        // TODO: We have to consider left margin (if exists), right margin (if exists), fontsize and paper type
-        this.maxLineWidth = pageWidth - startX * 2;
-
-        float lineHeightPercentage = 1.40f; // 140% da altura da fonte
-        this.lineHeight = this.fontSettings.getFontSize() * lineHeightPercentage;
-        this.linesPerPage = (int) Math.floor(startY / lineHeight);
-        this.currentLine = 0;
-        this.contentStream = null;
-        this.currentPage = null;
-    }
 
     /**
      *
@@ -126,27 +99,115 @@ public class PDFWriterIm {
         this.getBase64PDFBytes();
     }
 
-    public PDFWriterIm print(String text) throws PrinterException {
-        return this.print(text, -1);
-    }
-
-    public PDFWriterIm print(String text, int param) throws PrinterException {
+    public void print(String text) throws PrinterException {
         try {
-            List<String> lines = splitLine(text);
+//            List<String> lines = splitLine(text);
+            List<String> lines = wordWrapping(text);
             for (String line : lines) {
-                addNewPageIfNeeded();
-                float lineY = this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight;
-                addTextLine(this.contentStream, line, this.startX, lineY);
-                this.currentLine++;
+                printLine(line);
             }
         } catch (IOException e) {
             throw new PrinterException("Erro ao criar linha para PDF", e);
         }
-        return this;
+    }
+
+    private void printLine(String line) throws IOException {
+        addNewPageIfNeeded();
+        float lineY = this.pageLayout.getStartY() - (this.currentLine % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight();
+        addTextLine(this.contentStream, line, this.pageLayout.getStartX(), lineY);
+        this.currentLine++;
+    }
+
+//    private List<String> getLines(String text) throws IOException {
+//        List<String> lines = new ArrayList<>();
+//
+//        var isLargerThanMax = true;
+//        var currentText = text;
+//        while (isLargerThanMax) {
+//            if (getTextWidth(currentText) > this.pageLayout.getMaxLineWidth()) {
+//                int cutIdx =
+//                lines.add(currentText.substring(0, cutIdx));
+//                currentText = currentText.substring(cutIdx);
+//            } else {
+//                isLargerThanMax = false;
+//            }
+//        }
+//    }
+
+    private float getTextWidth(String text) throws IOException {
+        return this.pageLayout.getFontSettings().getDefaultFont().getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
+    }
+
+    private List<String> wordWrapping(String text) throws IOException {
+        List<String> lines = new ArrayList<>();
+
+        if (getTextWidth(text) <= this.pageLayout.getMaxLineWidth()) {
+            lines.add(text);
+            return lines;
+        }
+
+        final int n = text.length();
+        float[] widths = new float[n];
+        for (int i = 0; i < n; i++) {
+            widths[i] = getTextWidth(text.substring(i, i + 1));
+        }
+
+        float[] prefix = new float[n + 1];
+        for (int i = 1; i <= n; i++) {
+            prefix[i] = prefix[i - 1] + widths[i - 1];
+        }
+
+        int start = 0;
+
+        while (start < n) {
+            if (!this.preserveSpaces)
+                while (start < n && Character.isWhitespace(text.charAt(start))) start++;
+
+            if (start >= n) break;
+
+            int lo = start + 1, hi = n, best = start + 1;
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                float w = prefix[mid] - prefix[start];
+                if (w <= this.pageLayout.getMaxLineWidth()) {
+                    best = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+
+            int end = best;
+
+            int breakIdx = end;
+            if (end < n && !Character.isWhitespace(text.charAt(end - 1)) && !Character.isWhitespace(text.charAt(end))) {
+                int lastSpace = lastWhitespaceBetween(text, start, end - 1);
+                if (lastSpace >= start + 1) {
+                    breakIdx = lastSpace;
+                }
+            }
+
+            if (breakIdx == start) breakIdx = end;
+
+            lines.add(text.substring(start, breakIdx).stripTrailing());
+
+            // próximo início: pula o(s) espaço(s) depois do break
+            start = breakIdx;
+            while (start < n && Character.isWhitespace(text.charAt(start))) start++;
+        }
+
+        return lines;
+    }
+
+    private static int lastWhitespaceBetween(String s, int from, int toInclusive) {
+        for (int i = toInclusive; i >= from; i--) {
+            if (Character.isWhitespace(s.charAt(i))) return i;
+        }
+        return -1;
     }
 
     private boolean addNewPageIfNeeded() throws IOException {
-        if (this.document.getNumberOfPages() == 0 || this.currentLine >= this.linesPerPage) {
+        if (this.document.getNumberOfPages() == 0 || this.currentLine >= this.pageLayout.getLinesPerPage()) {
             addNewPage();
             return true;
         }
@@ -154,7 +215,7 @@ public class PDFWriterIm {
     }
 
     private boolean addNewPageIfNeeded(int finalLine) throws IOException {
-        if (this.document.getNumberOfPages() == 0 || finalLine >= this.linesPerPage) {
+        if (this.document.getNumberOfPages() == 0 || finalLine >= this.pageLayout.getLinesPerPage()) {
             addNewPage();
             return true;
         }
@@ -179,7 +240,7 @@ public class PDFWriterIm {
     private void addTextLine(PDPageContentStream contentStream, String text, float x, float y) throws IOException {
         try {
             contentStream.beginText();
-            contentStream.setFont(this.fontSettings.getDefaultFont(), this.fontSettings.getFontSize());
+            contentStream.setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
             contentStream.newLineAtOffset(x, y);
             contentStream.showText(text);
             contentStream.endText();
@@ -191,7 +252,7 @@ public class PDFWriterIm {
     /**
      *
      */
-    public PDFWriterIm printImage(ByteArrayInputStream imgBytes) {
+    public PDFQuill printImage(ByteArrayInputStream imgBytes) {
         try {
             if (this.currentPage == null || this.contentStream == null) {
                 this.currentPage = new PDPage(this.pageSize);
@@ -201,23 +262,23 @@ public class PDFWriterIm {
 
             BufferedImage image = ImageIO.read(imgBytes);
             PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
-            float imageHeight = mmToPt(7);
+            float imageHeight = MeasurementUtils.mmToPt(7);
 
             //Calcula coordenada y
-            float lineY = (this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight) - imageHeight;
+            float lineY = (this.pageLayout.getStartY()- (this.currentLine % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
             // Quantidade de linhas ocupadas pelo codigo de barra arredonado para cima
-            int imageLines = (int) Math.ceil(imageHeight / this.lineHeight);
+            int imageLines = (int) Math.ceil(imageHeight / this.pageLayout.getLineHeight());
             int finalLine = this.currentLine + imageLines + 1;
 
             if (addNewPageIfNeeded(finalLine)) {
                 //Recalcula coordenada y caso uma nova página seja adicionada
-                lineY = (this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight) - imageHeight;
+                lineY = (this.pageLayout.getStartY()- (this.currentLine % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
             }
 
             // Centraliza imagem
-            float barcodeStartX = (maxLineWidth - mmToPt(98)) / 2;
+            float barcodeStartX = (this.pageLayout.getMaxLineWidth() - MeasurementUtils.mmToPt(98)) / 2;
 
-            this.contentStream.drawImage(pdImage, barcodeStartX, lineY, mmToPt(98), imageHeight);
+            this.contentStream.drawImage(pdImage, barcodeStartX, lineY, MeasurementUtils.mmToPt(98), imageHeight);
 
             // Atualizando linha atual baseado na quantidade de linhas ocupadas pela imagem
             this.currentLine += imageLines + 1;
@@ -227,14 +288,14 @@ public class PDFWriterIm {
         return this;
     }
 
-    public PDFWriterIm printBarcode(String code, BarcodeType barcodeType) throws PrinterException {
-        return  this.printBarcode(code, barcodeType, 0, 0);
+    public PDFQuill printBarcode(String code, BarcodeType barcodeType) throws PrinterException {
+        return this.printBarcode(code, barcodeType, 0, 0);
     }
 
     /**
      *
      */
-    public PDFWriterIm printBarcode(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
+    public PDFQuill printBarcode(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
         try {
 
             if (height == 0) {
@@ -260,8 +321,8 @@ public class PDFWriterIm {
 
             PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
 
-            float imageHeight = BarcodeUtils.isQrCode(barcodeType) ? mmToPt(48f) : mmToPt(12f);
-            float imageWidth = BarcodeUtils.isQrCode(barcodeType) ? mmToPt(48f) : mmToPt(80f);
+            float imageHeight = BarcodeUtils.isQrCode(barcodeType) ? MeasurementUtils.mmToPt(48f) : MeasurementUtils.mmToPt(12f);
+            float imageWidth = BarcodeUtils.isQrCode(barcodeType) ? MeasurementUtils.mmToPt(48f) : MeasurementUtils.mmToPt(80f);
             drawImage(pdImage, imageHeight, imageWidth);
         } catch (Throwable e) {
             throw new PrinterException("Erro ao criar linha para PDF", e);
@@ -286,36 +347,36 @@ public class PDFWriterIm {
     }
 
     private void drawImage(PDImageXObject pdImage, float imageHeight, float imageWidth) throws IOException {
-        int barcodeLines = (int) Math.ceil(imageHeight / this.lineHeight);
-        //Centralizar barcode
-        float barcodeStartX = (maxLineWidth - imageWidth) / 2;
+        int barcodeLines = (int) Math.ceil(imageHeight / this.pageLayout.getLineHeight());
+        // Centralize barcode
+        float barcodeStartX = (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
-        //Calcula coordenada y
-        float lineY = (this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight) - imageHeight;
+        // Calculate coordinate y
+        float lineY = (this.pageLayout.getStartY()- (this.currentLine % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
 
         int finalLine = this.currentLine + barcodeLines + 1;
 
         if (addNewPageIfNeeded(finalLine)) {
-            //Recalcula coordenada y se uma nova pagina tiver sido adicionada
-            lineY = (this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight) - imageHeight;
+            // Recalculates coordinate y if a new page was added
+            lineY = (this.pageLayout.getStartY()- (this.currentLine % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
         }
 
         contentStream.drawImage(pdImage, barcodeStartX, lineY, imageWidth, imageHeight);
-        // Atualiza currentLine
+        // Updates current line
         this.currentLine += barcodeLines + 1;
     }
 
     /**
      *
      */
-    public PDFWriterIm cutSignal() throws PrinterException {
+    public PDFQuill cutSignal() throws PrinterException {
         try {
-            float lineY = this.startY - (this.currentLine % this.linesPerPage) * this.lineHeight;
+            float lineY = this.pageLayout.getStartY()- (this.currentLine % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight();
 
             contentStream.beginText();
-            contentStream.setFont(this.fontSettings.getDefaultFont(), this.fontSettings.getFontSize());
-            contentStream.newLineAtOffset(startX,lineY - this.lineHeight * 2);
-            contentStream.showText(createFullWidthString(" ", this.maxLineWidth));
+            contentStream.setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
+            contentStream.newLineAtOffset(this.pageLayout.getStartX(),lineY - this.pageLayout.getLineHeight() * 2);
+            contentStream.showText(createFullWidthString(" ", this.pageLayout.getMaxLineWidth()));
             contentStream.endText();
 
             currentLine = currentLine + 2;
@@ -329,10 +390,6 @@ public class PDFWriterIm {
         return this;
     }
 
-    public PDDocument getResource() {
-        return this.document;
-    }
-
     /**
      * Cuts PDF to correct size
      *
@@ -343,12 +400,15 @@ public class PDFWriterIm {
         ByteArrayInputStream in = new ByteArrayInputStream(bs);
         PDDocument document = PDDocument.load(in);
         PDPageTree pages = document.getDocumentCatalog().getPages();
+        float lineHeight = this.pageLayout.getLineHeight();
 
         for (PDPage page : pages) {
-            if (!PaperUtils.isThermal(this.paperType)) {
+            if (PaperUtils.isThermal(this.paperType)) {
                 PDRectangle mediaBox = page.getMediaBox();
-                PDRectangle cropBox = new PDRectangle(mediaBox.getLowerLeftX(), pageHeight - (lineHeight * currentLine) - lineHeight,
+                PDRectangle cropBox = new PDRectangle(mediaBox.getLowerLeftX(), this.pageLayout.getPageHeight()
+                        - (lineHeight * currentLine) - lineHeight,
                         mediaBox.getUpperRightX() - 3, (lineHeight * currentLine) + lineHeight);
+
                 page.setCropBox(cropBox);
             } else {
                 if (isPageBlank(document, page)) {
@@ -374,14 +434,7 @@ public class PDFWriterIm {
         return pageText.isEmpty();
     }
 
-    /**
-     *
-     * @param mm
-     * @return
-     */
-    private float mmToPt(float mm) {
-        return (72f * mm) / 25.4f;
-    }
+
 
     public String createFullWidthString(String text, float maxLineWidth) {
         float textWidth = 0;
@@ -392,10 +445,6 @@ public class PDFWriterIm {
         }
         int repetitions = (int) Math.ceil(maxLineWidth / textWidth);
         return repeatString(text, repetitions);
-    }
-
-    private float getTextWidth(String text) throws IOException {
-        return this.fontSettings.getDefaultFont().getStringWidth(text) * this.fontSettings.getFontSize() / 1000f;
     }
 
     private String repeatString(String text, int repetitions) {

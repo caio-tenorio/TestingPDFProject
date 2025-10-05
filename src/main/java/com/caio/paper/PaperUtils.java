@@ -1,4 +1,4 @@
-package org.example.paper;
+package com.caio.paper;
 
 import java.util.EnumSet;
 

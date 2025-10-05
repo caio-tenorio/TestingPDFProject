@@ -1,4 +1,4 @@
-package org.example;
+package com.caio;
 
 public class PrinterException extends RuntimeException {
     private static final long serialVersionUID = -2485028966274019623L;

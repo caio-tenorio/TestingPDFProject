@@ -1,4 +1,4 @@
-package org.example.barcode;
+package com.caio.barcode;
 
 import com.google.zxing.BarcodeFormat;
 

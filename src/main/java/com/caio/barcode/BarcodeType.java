@@ -1,4 +1,4 @@
-package org.example.barcode;
+package com.caio.barcode;
 
 public enum BarcodeType {
     UPCA(1),

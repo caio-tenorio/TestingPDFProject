@@ -1,12 +1,12 @@
-package org.example;
+package com.caio;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.example.barcode.BarcodeType;
-import org.example.paper.PaperType;
+import com.caio.barcode.BarcodeType;
+import com.caio.paper.PaperType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,7 +19,9 @@ public class Main {
     private static PDType1Font font = PDType1Font.HELVETICA;
 
     public static void main(String[] args) throws IOException {
-        PDFWriterIm resource = new PDFWriterIm(PaperType.A4);
+        //        resource.printBarcode("1234567890", BarcodeType.QRCODE);
+
+        PDFQuill resource = new PDFQuill();
         resource.print("Lorem ipsum dolor sit amet,");
         resource.print("consectetur adipiscing elit,");
         resource.print("consectetur adipiscing elit,");
@@ -27,8 +29,24 @@ public class Main {
         resource.print("Excepteur sint occaecat cupidatat non proident,");
         resource.print("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
         resource.print("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
-        resource.printBarcode("1234567890", BarcodeType.QRCODE);
-
+        resource.print("Excepteur sint occaecat cupidatat non proident");
+        resource.print("               Lorem ipsum dolor sit amet,             ");
+        resource.print("Lorem ipsum dolor sit amet,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("Excepteur sint occaecat cupidatat non proident,");
+        resource.print("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
+        resource.print("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
+        resource.print("Excepteur sint occaecat cupidatat non proident");
+        resource.print("               Lorem ipsum dolor sit amet,             ");
+        resource.print("Lorem ipsum dolor sit amet,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("consectetur adipiscing elit,");
+        resource.print("Excepteur sint occaecat cupidatat non proident,");
+        resource.print("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
+        resource.print("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
         resource.print("Excepteur sint occaecat cupidatat non proident");
         resource.print("               Lorem ipsum dolor sit amet,             ");
 

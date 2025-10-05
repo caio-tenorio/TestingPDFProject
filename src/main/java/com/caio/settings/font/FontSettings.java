@@ -1,4 +1,4 @@
-package org.example.font;
+package com.caio.settings.font;
 
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
