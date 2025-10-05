@@ -1,12 +1,12 @@
 package com.caio;
 
+import com.caio.paper.PaperType;
+import com.caio.settings.font.FontSettings;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import com.caio.barcode.BarcodeType;
-import com.caio.paper.PaperType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,14 +14,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.caio.measurements.MeasurementUtils.mmToPt;
+
 public class Main {
     private static int fontSize = 12;
     private static PDType1Font font = PDType1Font.HELVETICA;
 
     public static void main(String[] args) throws IOException {
         //        resource.printBarcode("1234567890", BarcodeType.QRCODE);
+        System.out.println(mmToPt(2000));
+        FontSettings fontSettings = new FontSettings();
+        fontSettings.setFontSize(8);
 
-        PDFQuill resource = new PDFQuill();
+        PDFQuill resource = PDFQuill.builder().withPaperType(PaperType.THERMAL_56MM).withFontSettings(fontSettings).build();
         resource.print("Lorem ipsum dolor sit amet,");
         resource.print("consectetur adipiscing elit,");
         resource.print("consectetur adipiscing elit,");

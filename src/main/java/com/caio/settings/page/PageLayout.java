@@ -1,19 +1,19 @@
 package com.caio.settings.page;
 
+import com.caio.paper.PaperType;
+import com.caio.paper.PaperUtils;
 import com.caio.settings.font.FontSettings;
 
 public class PageLayout {
     // Margins
     private float marginLeft = 4f;
     private float marginRight = 4f;
-    private float marginTop = 50f;
+    private float marginTop = 8f;
     private float marginBottom = 4f;
 
     private FontSettings fontSettings = new FontSettings();
 
-    // Required
-    private float pageWidth;
-    private float pageHeight;
+    private PaperType paperType = PaperType.A4;
 
     //Defined by margins
     private float startX;
@@ -24,44 +24,25 @@ public class PageLayout {
     private float maxLineWidth;
     private Integer linesPerPage;
 
-    public PageLayout(float marginLeft, float marginRight, float marginTop, float marginBottom, float pageWidth,
-                      float pageHeight, FontSettings fontSettings) {
-
-        //TODO: Creio que devemos permitir mudança de page settings no meio do texto
-        this.marginLeft = marginLeft;
-        this.marginRight = marginRight;
-        this.marginTop = marginTop;
-        this.marginBottom = marginBottom;
-
-        this.fontSettings = fontSettings;
-
-        this.pageWidth = pageWidth;
-        this.pageHeight = pageHeight;
-
-        this.startX = this.marginLeft; // TODO: isso será definido pelas margens no futuro
-        this.startY = pageHeight - this.marginTop; //TODO: revisar esse número arbitrário 8
-
-        this.maxLineWidth = pageWidth - startX * 2;
-
-        //TODO: definir essa porcentagem através do spacing depois
-        float lineHeightPercentage = 1.20f; // 140% da altura da fonte
-
-        this.lineHeight = this.fontSettings.getFontSize() * lineHeightPercentage;
-        this.linesPerPage = (int) Math.floor(startY / lineHeight);
+    public PageLayout(PaperType paperType) {
+        this.paperType = paperType != null ? paperType : PaperType.A4;
+        this.assignDependentAttrs();
     }
 
-    public PageLayout(float pageHeight, float pageWidth) {
-        this.pageHeight = pageHeight;
-        this.pageWidth = pageWidth;
+    public void setFontSettings(FontSettings fontSettings) {
+        this.fontSettings = fontSettings;
+        this.assignDependentAttrs();
+    }
 
-        this.startX = this.marginLeft; // TODO: isso será definido pelas margens no futuro
-        this.startY = pageHeight - this.marginTop; //TODO: revisar esse número arbitrário 8
-
+    public void recalculate() {
         this.assignDependentAttrs();
     }
 
     private void assignDependentAttrs() {
-        this.maxLineWidth = this.pageWidth - this.startX * 2;
+        this.startX = this.marginLeft; // TODO: isso será definido pelas margens no futuro
+        this.startY = getPageHeight() - this.marginTop; //TODO: revisar esse número arbitrário 8
+
+        this.maxLineWidth = getPageWidth() - this.marginLeft - this.marginRight;
 
         //TODO: definir essa porcentagem através do spacing depois
         float lineHeightPercentage = 1.20f; // 140% da altura da fonte
@@ -70,12 +51,29 @@ public class PageLayout {
         this.linesPerPage = (int) Math.floor(startY / lineHeight);
     }
 
+    public PaperType getPaperType() {
+        return this.paperType;
+    }
+
+    public void setPaperType(PaperType paperType) {
+        this.paperType = paperType != null ? paperType : PaperType.A4;
+        this.assignDependentAttrs();
+    }
+
+    public boolean isThermalPaper() {
+        return PaperUtils.isThermal(this.paperType);
+    }
+
+    public boolean isNonThermalPaper() {
+        return PaperUtils.isNotThermal(this.paperType);
+    }
+
     public float getPageWidth() {
-        return pageWidth;
+        return this.paperType.getWidth();
     }
 
     public float getPageHeight() {
-        return pageHeight;
+        return this.paperType.getHeight();
     }
 
     public float getStartX() {
