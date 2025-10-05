@@ -11,11 +11,13 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 import javax.xml.bind.DatatypeConverter;
 
 import com.caio.measurements.MeasurementUtils;
+import com.caio.settings.font.FontSettings;
 import com.caio.settings.page.PageLayout;
 import com.caio.settings.permissions.PermissionSettings;
 import com.google.zxing.BarcodeFormat;
@@ -34,45 +36,68 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import com.caio.barcode.BarcodeType;
 import com.caio.barcode.BarcodeUtils;
 import com.caio.paper.PaperType;
-import com.caio.paper.PaperUtils;
 
 
 public class PDFQuill {
+    // Configurable attrs
     private final PageLayout pageLayout;
     private final PermissionSettings permissionSettings;
-
     private byte[] pdf;
-    private int currentLine;
-    private final PaperType paperType;
     private boolean preserveSpaces = false;
 
-    private final ByteArrayOutputStream os;
 
     // PDF Box Classes // Internal attrs
+    private final ByteArrayOutputStream os;
     private final PDRectangle pageSize;
     private final PDDocument document;
     private PDPageContentStream contentStream;
     private PDPage currentPage;
+    private int currentLine;
 
     public PDFQuill() {
-        this.paperType = PaperType.A4;
+        this(new Builder());
+    }
+
+    private PDFQuill(Builder builder) {
+        this.preserveSpaces = builder.preserveSpaces;
+        PermissionSettings basePermissionSettings = builder.permissionSettings != null ? builder.permissionSettings : new PermissionSettings();
+        this.permissionSettings = copyPermissionSettings(basePermissionSettings);
         this.os = new ByteArrayOutputStream();
         this.document = new PDDocument();
+        PageLayout layout = builder.pageLayout != null ? builder.pageLayout : createDefaultPageLayout(builder.paperType);
 
-        this.pageSize = PDRectangle.A4;
+        if (builder.pageLayout != null && builder.paperType != null) {
+            layout.setPaperType(builder.paperType);
+        }
 
-        //Settings
-        this.permissionSettings = new PermissionSettings();
-        this.pageLayout = new PageLayout(pageSize.getHeight(), pageSize.getWidth());
+        if (builder.fontSettings != null) {
+            layout.setFontSettings(copyFontSettings(builder.fontSettings));
+        }
+        if (builder.fontSettingsCustomizer != null) {
+            builder.fontSettingsCustomizer.accept(layout.getFontSettings());
+            layout.recalculate();
+        }
 
-        // Define as posicoes dos textos
+        this.pageLayout = layout;
+        this.pageSize = new PDRectangle(this.pageLayout.getPageWidth(), this.pageLayout.getPageHeight());
+
+        if (builder.permissionSettingsCustomizer != null) {
+            builder.permissionSettingsCustomizer.accept(this.permissionSettings);
+        }
 
         this.currentLine = 0;
         this.contentStream = null;
         this.currentPage = null;
-
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private static PageLayout createDefaultPageLayout(PaperType paperType) {
+        PaperType resolvedPaperType = paperType != null ? paperType : PaperType.A4;
+        return new PageLayout(resolvedPaperType);
+    }
 
     /**
      *
@@ -381,7 +406,7 @@ public class PDFQuill {
 
             currentLine = currentLine + 2;
 
-            if (PaperUtils.isNotThermal(this.paperType)) {
+            if (this.pageLayout.isNonThermalPaper()) {
                 addNewPage();
             }
         } catch (IOException e) {
@@ -403,7 +428,7 @@ public class PDFQuill {
         float lineHeight = this.pageLayout.getLineHeight();
 
         for (PDPage page : pages) {
-            if (PaperUtils.isThermal(this.paperType)) {
+            if (this.pageLayout.isThermalPaper()) {
                 PDRectangle mediaBox = page.getMediaBox();
                 PDRectangle cropBox = new PDRectangle(mediaBox.getLowerLeftX(), this.pageLayout.getPageHeight()
                         - (lineHeight * currentLine) - lineHeight,
@@ -453,5 +478,75 @@ public class PDFQuill {
             sb.append(text);
         }
         return sb.toString();
+    }
+
+    private static PermissionSettings copyPermissionSettings(PermissionSettings source) {
+        PermissionSettings copy = new PermissionSettings();
+        copy.setCanPrint(source.isCanPrint());
+        copy.setCanModify(source.isCanModify());
+        copy.setCanExtractContent(source.isCanExtractContent());
+        return copy;
+    }
+
+    private static FontSettings copyFontSettings(FontSettings source) {
+        FontSettings copy = new FontSettings();
+        copy.setFontSize(source.getFontSize());
+        copy.setDefaultFont(source.getDefaultFont());
+        copy.setBoldFont(source.getBoldFont());
+        copy.setItalicFont(source.getItalicFont());
+        copy.setBoldItalicFont(source.getBoldItalicFont());
+        return copy;
+    }
+
+    public static final class Builder {
+        private PaperType paperType;
+        private boolean preserveSpaces;
+        private PermissionSettings permissionSettings;
+        private Consumer<PermissionSettings> permissionSettingsCustomizer;
+        private PageLayout pageLayout;
+        private FontSettings fontSettings;
+        private Consumer<FontSettings> fontSettingsCustomizer;
+
+        public Builder withPaperType(PaperType paperType) {
+            if (paperType == null) {
+                throw new IllegalArgumentException("paperType cannot be null");
+            }
+            this.paperType = paperType;
+            return this;
+        }
+
+        public Builder preserveSpaces(boolean preserveSpaces) {
+            this.preserveSpaces = preserveSpaces;
+            return this;
+        }
+
+        public Builder withPermissionSettings(PermissionSettings permissionSettings) {
+            this.permissionSettings = permissionSettings;
+            return this;
+        }
+
+        public Builder configurePermissionSettings(Consumer<PermissionSettings> permissionSettingsCustomizer) {
+            this.permissionSettingsCustomizer = permissionSettingsCustomizer;
+            return this;
+        }
+
+        public Builder withPageLayout(PageLayout pageLayout) {
+            this.pageLayout = pageLayout;
+            return this;
+        }
+
+        public Builder withFontSettings(FontSettings fontSettings) {
+            this.fontSettings = fontSettings;
+            return this;
+        }
+
+        public Builder configureFontSettings(Consumer<FontSettings> fontSettingsCustomizer) {
+            this.fontSettingsCustomizer = fontSettingsCustomizer;
+            return this;
+        }
+
+        public PDFQuill build() {
+            return new PDFQuill(this);
+        }
     }
 }
