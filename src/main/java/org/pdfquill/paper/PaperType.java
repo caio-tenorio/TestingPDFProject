@@ -1,5 +1,8 @@
-package com.caio.paper;
+package org.pdfquill.paper;
 
+/**
+ * Canonical paper sizes expressed in PDF points.
+ */
 public enum PaperType {
     A0(2383.937F, 3370.3938F),
     A1(1683.7795F, 2383.937F),
@@ -25,10 +28,16 @@ public enum PaperType {
         this.height = height;
     }
 
+    /**
+     * @return paper width in points
+     */
     public float getWidth() {
         return width;
     }
 
+    /**
+     * @return paper height in points
+     */
     public float getHeight() {
         return height;
     }

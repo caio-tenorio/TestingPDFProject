@@ -1,0 +1,236 @@
+package org.pdfquill.settings.page;
+
+import org.pdfquill.paper.PaperType;
+import org.pdfquill.paper.PaperUtils;
+import org.pdfquill.settings.font.FontSettings;
+
+/**
+ * Encapsulates printable area, margins, line metrics, and paper type settings
+ * used while rendering PDF pages.
+ */
+public class PageLayout {
+    // Margins
+    private float marginLeft = 4f;
+    private float marginRight = 4f;
+    private float marginTop = 8f;
+    private float marginBottom = 4f;
+
+    private FontSettings fontSettings = new FontSettings();
+
+    private PaperType paperType = PaperType.A4;
+
+    //Defined by margins
+    private float startX;
+    private float startY;
+
+    // Calculated
+    private float lineHeight;
+    private float maxLineWidth;
+    private Integer linesPerPage;
+
+    /**
+     * Builds a layout for the given paper type using default margins and fonts.
+     *
+     * @param paperType paper format to base the layout on; defaults to A4 when {@code null}
+     */
+    public PageLayout(PaperType paperType) {
+        this.paperType = paperType != null ? paperType : PaperType.A4;
+        this.assignDependentAttrs();
+    }
+
+    /**
+     * Copy constructor that performs defensive cloning of dependent settings.
+     *
+     * @param other layout to clone; can be {@code null}
+     */
+    public PageLayout(PageLayout other) {
+        if (other != null) {
+            this.marginLeft = other.marginLeft;
+            this.marginRight = other.marginRight;
+            this.marginTop = other.marginTop;
+            this.marginBottom = other.marginBottom;
+            this.fontSettings = other.fontSettings != null ? other.fontSettings.copy() : new FontSettings();
+            this.paperType = other.paperType != null ? other.paperType : PaperType.A4;
+        }
+        this.assignDependentAttrs();
+    }
+
+    /**
+     * Replaces the font settings and recalculates derived measurements.
+     *
+     * @param fontSettings new font configuration; defaults are used when {@code null}
+     */
+    public void setFontSettings(FontSettings fontSettings) {
+        this.fontSettings = fontSettings != null ? fontSettings.copy() : new FontSettings();
+        this.assignDependentAttrs();
+    }
+
+    /**
+     * Updates all margins in points and recalculates dependent measurements.
+     *
+     * @param marginLeft   left margin
+     * @param marginRight  right margin
+     * @param marginTop    top margin
+     * @param marginBottom bottom margin
+     */
+    public void setMargins(float marginLeft, float marginRight, float marginTop, float marginBottom) {
+        validateMargin(marginLeft, "marginLeft");
+        validateMargin(marginRight, "marginRight");
+        validateMargin(marginTop, "marginTop");
+        validateMargin(marginBottom, "marginBottom");
+        this.marginLeft = marginLeft;
+        this.marginRight = marginRight;
+        this.marginTop = marginTop;
+        this.marginBottom = marginBottom;
+        this.assignDependentAttrs();
+    }
+
+    /**
+     * Recomputes derived measurements such as line height and lines per page.
+     */
+    public void recalculate() {
+        this.assignDependentAttrs();
+    }
+
+    private void assignDependentAttrs() {
+        this.startX = this.marginLeft;
+        this.startY = getPageHeight() - this.marginTop;
+
+        this.maxLineWidth = getPageWidth() - this.marginLeft - this.marginRight;
+
+        float spacingBetweenLines = 1.15f;
+
+        this.lineHeight = this.fontSettings.getFontSize() * spacingBetweenLines;
+        this.linesPerPage = (int) Math.floor(startY / lineHeight);
+    }
+
+    private static void validateMargin(float value, String field) {
+        if (value < 0) {
+            throw new IllegalArgumentException(field + " cannot be negative");
+        }
+    }
+
+    /**
+     * @return currently configured paper type
+     */
+    public PaperType getPaperType() {
+        return this.paperType;
+    }
+
+    /**
+     * Sets the paper type and recalculates derived measurements.
+     *
+     * @param paperType new paper format; defaults to A4 when {@code null}
+     */
+    public void setPaperType(PaperType paperType) {
+        this.paperType = paperType != null ? paperType : PaperType.A4;
+        this.assignDependentAttrs();
+    }
+
+    /**
+     * @return {@code true} when the current paper type is thermal
+     */
+    public boolean isThermalPaper() {
+        return PaperUtils.isThermal(this.paperType);
+    }
+
+    /**
+     * @return {@code true} when the current paper type is not thermal
+     */
+    public boolean isNonThermalPaper() {
+        return PaperUtils.isNotThermal(this.paperType);
+    }
+
+    /**
+     * @return page width in points
+     */
+    public float getPageWidth() {
+        return this.paperType.getWidth();
+    }
+
+    /**
+     * @return page height in points
+     */
+    public float getPageHeight() {
+        return this.paperType.getHeight();
+    }
+
+    /**
+     * @return x-coordinate of the printable area's left edge
+     */
+    public float getStartX() {
+        return startX;
+    }
+
+    /**
+     * @return y-coordinate of the first baseline measured from the page bottom
+     */
+    public float getStartY() {
+        return startY;
+    }
+
+    /**
+     * @return distance between two text baselines
+     */
+    public float getLineHeight() {
+        return lineHeight;
+    }
+
+    /**
+     * @return maximum width allowed for a text line
+     */
+    public float getMaxLineWidth() {
+        return maxLineWidth;
+    }
+
+    /**
+     * Overrides the calculated line width. Use with care since other metrics are not updated.
+     *
+     * @param maxLineWidth width in points
+     */
+    public void setMaxLineWidth(float maxLineWidth) {
+        this.maxLineWidth = maxLineWidth;
+    }
+
+    /**
+     * @return maximum number of text lines that fit on a page
+     */
+    public int getLinesPerPage() {
+        return linesPerPage;
+    }
+
+    /**
+     * @return font settings applied to text rendering
+     */
+    public FontSettings getFontSettings() {
+        return this.fontSettings;
+    }
+
+    /**
+     * @return left margin in points
+     */
+    public float getMarginLeft() {
+        return marginLeft;
+    }
+
+    /**
+     * @return right margin in points
+     */
+    public float getMarginRight() {
+        return marginRight;
+    }
+
+    /**
+     * @return top margin in points
+     */
+    public float getMarginTop() {
+        return marginTop;
+    }
+
+    /**
+     * @return bottom margin in points
+     */
+    public float getMarginBottom() {
+        return marginBottom;
+    }
+}
