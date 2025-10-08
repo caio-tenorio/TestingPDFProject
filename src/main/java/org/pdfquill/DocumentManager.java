@@ -24,7 +24,14 @@ public class DocumentManager {
 
     private PDPage currentPage;
     private PDPageContentStream contentStream;
-    private int currentLine = 0;
+    private float writtenHeight = 0;
+
+    /**
+     * @return cumulative height already written on the current page
+     */
+    public float getWrittenHeight() {
+        return writtenHeight;
+    }
 
     /**
      * Creates a manager responsible for writing content according to the supplied layout.
@@ -69,36 +76,30 @@ public class DocumentManager {
     }
 
     /**
-     * @return current line index being written on the active page
+     * Increases the written height by one logical line.
      */
-    public int getCurrentLine() {
-        return currentLine;
+    public void incrementWrittenHeight() {
+        this.writtenHeight += this.pageLayout.getLineHeight();
     }
 
     /**
-     * Advances the line counter by one.
-     */
-    public void incrementCurrentLine() {
-        this.currentLine++;
-    }
-
-    /**
-     * Advances the line counter by the provided amount.
+     * Increases the written height by an arbitrary content height plus a trailing line gap.
      *
-     * @param lines number of logical lines consumed
+     * @param height rendered element height in points
      */
-    public void incrementCurrentLine(int lines) {
-        this.currentLine += lines;
+    public void incrementWrittenHeight(float height) {
+        this.writtenHeight += height +  this.pageLayout.getLineHeight();
     }
 
     /**
-     * Ensures there is a writable page and creates a new one when the current page is full.
+     * Ensures there is a writable page and creates a new one when the accumulated written height
+     * would overflow the current page.
      *
      * @return {@code true} when a new page was created
      * @throws IOException when PDFBox cannot initialise the page
      */
     public boolean addNewPageIfNeeded() throws IOException {
-        if (document.getNumberOfPages() == 0 || currentLine >= pageLayout.getLinesPerPage()) {
+        if (document.getNumberOfPages() == 0 || willNewContentExceedPageWritingHeight(this.pageLayout.getLineHeight())) {
             addNewPage();
             return true;
         }
@@ -106,18 +107,22 @@ public class DocumentManager {
     }
 
     /**
-     * Same as {@link #addNewPageIfNeeded()} but considers the number of upcoming lines.
+     * Same as {@link #addNewPageIfNeeded()} but considers an arbitrary content height.
      *
-     * @param finalLine anticipated line index after the next operation
+     * @param height anticipated content height in points (before adding line spacing)
      * @return {@code true} when a new page was created
      * @throws IOException when PDFBox cannot initialise the page
      */
-    public boolean addNewPageIfNeeded(int finalLine) throws IOException {
-        if (document.getNumberOfPages() == 0 || finalLine >= pageLayout.getLinesPerPage()) {
+    public boolean addNewPageIfNeeded(float height) throws IOException {
+        if (document.getNumberOfPages() == 0 || willNewContentExceedPageWritingHeight(height)) {
             addNewPage();
             return true;
         }
         return false;
+    }
+
+    private boolean willNewContentExceedPageWritingHeight(float height) {
+        return this.writtenHeight + height > this.pageLayout.getPageWritingHeight();
     }
 
     /**
@@ -132,7 +137,7 @@ public class DocumentManager {
         this.currentPage = new PDPage(this.pageSize);
         this.document.addPage(this.currentPage);
         this.contentStream = new PDPageContentStream(this.document, this.currentPage);
-        this.currentLine = 0;
+        this.writtenHeight = 0;
     }
 
     /**
@@ -163,8 +168,8 @@ public class DocumentManager {
             if (this.pageLayout.isThermalPaper()) {
                 PDRectangle mediaBox = page.getMediaBox();
                 PDRectangle cropBox = new PDRectangle(mediaBox.getLowerLeftX(), this.pageLayout.getPageHeight()
-                        - (lineHeight * currentLine) - lineHeight,
-                        mediaBox.getUpperRightX() - 3, (lineHeight * currentLine) + lineHeight);
+                        - this.writtenHeight - lineHeight,
+                        mediaBox.getUpperRightX() - 3, this.writtenHeight + lineHeight);
 
                 page.setCropBox(cropBox);
             } else {

@@ -60,11 +60,17 @@ public class ContentDrawer {
         }
     }
 
+    private void printLine(String line, float x, float y) throws IOException {
+        documentManager.addNewPageIfNeeded();
+        addTextLine(line, x, y);
+        documentManager.incrementWrittenHeight();
+    }
+
     private void printLine(String line) throws IOException {
         documentManager.addNewPageIfNeeded();
-        float lineY = this.pageLayout.getStartY() - (this.documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight();
+        float lineY = this.pageLayout.getStartY() - this.documentManager.getWrittenHeight();
         addTextLine(line, this.pageLayout.getStartX(), lineY);
-        this.documentManager.incrementCurrentLine();
+        documentManager.incrementWrittenHeight();
     }
 
     private void addTextLine(String text, float x, float y) throws IOException {
@@ -182,18 +188,18 @@ public class ContentDrawer {
             PDImageXObject pdImage = LosslessFactory.createFromImage(documentManager.getDocument(), image);
 
 
-            float lineY = (this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
+            float lineY = (this.pageLayout.getStartY() - this.documentManager.getWrittenHeight()) - imageHeight;
             int imageLines = (int) Math.ceil(imageHeight / this.pageLayout.getLineHeight());
-            int finalLine = documentManager.getCurrentLine() + imageLines + 1;
-
-            if (documentManager.addNewPageIfNeeded(finalLine)) {
-                lineY = (this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
+            
+            if (documentManager.addNewPageIfNeeded(imageHeight)) {
+                // Need to recalculate
+                lineY = (this.pageLayout.getStartY() - this.documentManager.getWrittenHeight()) - imageHeight;
             }
 
             float barcodeStartX = (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
             documentManager.getContentStream().drawImage(pdImage, barcodeStartX, lineY, imageWidth, imageHeight);
-            documentManager.incrementCurrentLine(imageLines + 1);
+            documentManager.incrementWrittenHeight(imageHeight);
         } catch (IOException e) {
             throw new PrinterException("Erro ao desenhar imagem no PDF", e);
         }
@@ -254,15 +260,15 @@ public class ContentDrawer {
     private void drawImage(PDImageXObject pdImage, float imageHeight, float imageWidth) throws IOException {
         int barcodeLines = (int) Math.ceil(imageHeight / this.pageLayout.getLineHeight());
         float barcodeStartX = (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
-        float lineY = (this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
-        int finalLine = documentManager.getCurrentLine() + barcodeLines + 1;
-
-        if (documentManager.addNewPageIfNeeded(finalLine)) {
-            lineY = (this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
+        float lineY = (this.pageLayout.getStartY() - this.documentManager.getWrittenHeight()) - imageHeight;
+        
+        if (documentManager.addNewPageIfNeeded(imageHeight)) {
+            // Need to recalculate
+            lineY = (this.pageLayout.getStartY() - this.documentManager.getWrittenHeight()) - imageHeight;
         }
 
         documentManager.getContentStream().drawImage(pdImage, barcodeStartX, lineY, imageWidth, imageHeight);
-        documentManager.incrementCurrentLine(barcodeLines + 1);
+        documentManager.incrementWrittenHeight(imageHeight);
     }
 
     /**
@@ -272,7 +278,7 @@ public class ContentDrawer {
      */
     public void cutSignal() throws PrinterException {
         try {
-            float lineY = this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight();
+            float lineY = this.pageLayout.getStartY() - this.documentManager.getWrittenHeight();
 
             documentManager.getContentStream().beginText();
             documentManager.getContentStream().setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
@@ -280,7 +286,7 @@ public class ContentDrawer {
             documentManager.getContentStream().showText(createFullWidthString(" ", this.pageLayout.getMaxLineWidth()));
             documentManager.getContentStream().endText();
 
-            documentManager.incrementCurrentLine(2);
+            documentManager.incrementWrittenHeight(this.pageLayout.getLineHeight() * 2);
 
             if (this.pageLayout.isNonThermalPaper()) {
                 documentManager.addNewPage();

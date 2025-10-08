@@ -78,6 +78,15 @@ public class PDFQuill {
     }
 
     /**
+     * Replaces the active font settings on the underlying layout.
+     *
+     * @param fontSettings new font configuration to apply
+     */
+    public void updateFontSettings(FontSettings fontSettings) {
+        this.pageLayout.setFontSettings(fontSettings);
+    }
+
+    /**
      * Finalises the document (if necessary) and returns the content encoded as Base64.
      *
      * @return Base64 encoded PDF bytes
