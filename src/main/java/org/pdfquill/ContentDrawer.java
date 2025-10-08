@@ -1,9 +1,9 @@
-package com.caio;
+package org.pdfquill;
 
-import com.caio.barcode.BarcodeType;
-import com.caio.barcode.BarcodeUtils;
-import com.caio.measurements.MeasurementUtils;
-import com.caio.settings.page.PageLayout;
+import org.pdfquill.barcode.BarcodeType;
+import org.pdfquill.barcode.BarcodeUtils;
+import org.pdfquill.measurements.MeasurementUtils;
+import org.pdfquill.settings.page.PageLayout;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
@@ -22,17 +22,33 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Translates high-level print commands (text, images, barcodes) into PDFBox drawing operations.
+ */
 public class ContentDrawer {
     private final DocumentManager documentManager;
     private final PageLayout pageLayout;
     private final boolean preserveSpaces;
 
+    /**
+     * Creates a drawer tied to a specific document manager and layout.
+     *
+     * @param documentManager conduit for managing pages and content streams
+     * @param pageLayout      layout containing page metrics
+     * @param preserveSpaces  when {@code true}, leading spaces are preserved during wrapping
+     */
     public ContentDrawer(DocumentManager documentManager, PageLayout pageLayout, boolean preserveSpaces) {
         this.documentManager = documentManager;
         this.pageLayout = pageLayout;
         this.preserveSpaces = preserveSpaces;
     }
 
+    /**
+     * Prints a block of text, applying automatic wrapping based on the current layout.
+     *
+     * @param text text to render
+     * @throws PrinterException when PDF operations fail
+     */
     public void print(String text) throws PrinterException {
         try {
             List<String> lines = wordWrapping(text);
@@ -54,7 +70,8 @@ public class ContentDrawer {
     private void addTextLine(String text, float x, float y) throws IOException {
         try {
             documentManager.getContentStream().beginText();
-            documentManager.getContentStream().setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
+            documentManager.getContentStream().setFont(this.pageLayout.getFontSettings().getDefaultFont(),
+                    this.pageLayout.getFontSettings().getFontSize());
             documentManager.getContentStream().newLineAtOffset(x, y);
             documentManager.getContentStream().showText(text);
             documentManager.getContentStream().endText();
@@ -134,15 +151,36 @@ public class ContentDrawer {
         return -1;
     }
 
-    public void printImage(ByteArrayInputStream imgBytes) throws PrinterException {
+    /**
+     * Draws an image using default dimensions (100x100 points).
+     *
+     * @param imgBytes input stream containing image data
+     * @throws IOException when the image cannot be read
+     */
+    public void printImage(ByteArrayInputStream imgBytes) throws IOException {
+        printImage(imgBytes, 100, 100);
+    }
+
+    /**
+     * Draws an image with explicit dimensions and takes pagination into account.
+     *
+     * @param imgBytes image data
+     * @param width    width in points
+     * @param height   height in points
+     * @throws PrinterException when the image cannot be placed on the PDF
+     */
+    public void printImage(ByteArrayInputStream imgBytes, int width, int height) throws PrinterException {
         try {
             if (documentManager.getCurrentPage() == null || documentManager.getContentStream() == null) {
                 documentManager.addNewPage();
             }
 
+            float imageHeight = (float) height;
+            float imageWidth = (float) width;
+
             BufferedImage image = ImageIO.read(imgBytes);
             PDImageXObject pdImage = LosslessFactory.createFromImage(documentManager.getDocument(), image);
-            float imageHeight = MeasurementUtils.mmToPt(7);
+
 
             float lineY = (this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
             int imageLines = (int) Math.ceil(imageHeight / this.pageLayout.getLineHeight());
@@ -152,16 +190,24 @@ public class ContentDrawer {
                 lineY = (this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight()) - imageHeight;
             }
 
-            float barcodeStartX = (this.pageLayout.getMaxLineWidth() - MeasurementUtils.mmToPt(98)) / 2;
+            float barcodeStartX = (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
-            documentManager.getContentStream().drawImage(pdImage, barcodeStartX, lineY, MeasurementUtils.mmToPt(98), imageHeight);
-
+            documentManager.getContentStream().drawImage(pdImage, barcodeStartX, lineY, imageWidth, imageHeight);
             documentManager.incrementCurrentLine(imageLines + 1);
         } catch (IOException e) {
             throw new PrinterException("Erro ao desenhar imagem no PDF", e);
         }
     }
 
+    /**
+     * Renders a barcode (or QR Code) centred within the printable width.
+     *
+     * @param code         payload to encode
+     * @param barcodeType  barcode symbology
+     * @param height       desired barcode height in pixels (ZXing rendering space)
+     * @param width        desired barcode width in pixels (ZXing rendering space)
+     * @throws PrinterException when barcode generation fails
+     */
     public void printBarcode(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
         try {
             if (height == 0) height = 350;
@@ -219,6 +265,11 @@ public class ContentDrawer {
         documentManager.incrementCurrentLine(barcodeLines + 1);
     }
 
+    /**
+     * Emits a visual indicator representing the cut mark typically used for receipts.
+     *
+     * @throws PrinterException when drawing the signal fails
+     */
     public void cutSignal() throws PrinterException {
         try {
             float lineY = this.pageLayout.getStartY() - (documentManager.getCurrentLine() % this.pageLayout.getLinesPerPage()) * this.pageLayout.getLineHeight();
@@ -239,6 +290,13 @@ public class ContentDrawer {
         }
     }
 
+    /**
+     * Builds a string by repeating a pattern until the supplied width is filled.
+     *
+     * @param text         pattern to repeat
+     * @param maxLineWidth width to fill in points
+     * @return generated string sized approximately to the provided width
+     */
     public String createFullWidthString(String text, float maxLineWidth) {
         float textWidth = 0;
         try {

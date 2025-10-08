@@ -1,17 +1,31 @@
-package com.caio.barcode;
+package org.pdfquill.barcode;
 
 import com.google.zxing.BarcodeFormat;
 
-public class BarcodeUtils {
+/**
+ * Helper methods for converting {@link BarcodeType} values into ZXing artefacts.
+ */
+public final class BarcodeUtils {
 
     private BarcodeUtils() {
         // utility class
     }
 
+    /**
+     * @param barcodeType type to inspect
+     * @return {@code true} when the supplied type is a QR Code
+     */
     public static boolean isQrCode(BarcodeType barcodeType) {
         return BarcodeType.QRCODE.equals(barcodeType);
     }
 
+    /**
+     * Maps the domain-specific {@link BarcodeType} enumeration to ZXing's {@link BarcodeFormat}.
+     * Defaults to CODE_128 when {@code null} is supplied.
+     *
+     * @param barcodeType desired barcode type
+     * @return ZXing format matching the supplied type
+     */
     public static BarcodeFormat getBarcodeFormat(BarcodeType barcodeType) {
         if (barcodeType == null) {
             return BarcodeFormat.CODE_128;
