@@ -14,6 +14,7 @@ public class PageLayout {
     private float marginRight = 4f;
     private float marginTop = 8f;
     private float marginBottom = 4f;
+    private float lineSpacing = 1.15f;
 
     private FontSettings fontSettings = new FontSettings();
 
@@ -26,7 +27,7 @@ public class PageLayout {
     // Calculated
     private float lineHeight;
     private float maxLineWidth;
-    private Integer linesPerPage;
+    private float pageWritingHeight;
 
     /**
      * Builds a layout for the given paper type using default margins and fonts.
@@ -36,6 +37,16 @@ public class PageLayout {
     public PageLayout(PaperType paperType) {
         this.paperType = paperType != null ? paperType : PaperType.A4;
         this.assignDependentAttrs();
+    }
+
+    /**
+     * Applies externally managed font settings without cloning and updates internal metrics.
+     *
+     * @param fontSettings shared font settings instance (callers retain ownership)
+     */
+    public void updateFontSettings(FontSettings fontSettings) {
+        this.fontSettings = fontSettings;
+        recalculateAfterFontUpdate();
     }
 
     /**
@@ -86,10 +97,15 @@ public class PageLayout {
     }
 
     /**
-     * Recomputes derived measurements such as line height and lines per page.
+     * Recomputes derived measurements such as line height, max line width, and writing height.
      */
     public void recalculate() {
         this.assignDependentAttrs();
+    }
+
+    private void recalculateAfterFontUpdate() {
+        this.lineHeight = this.fontSettings.getFontSize() * this.lineSpacing;
+        this.pageWritingHeight = getPageHeight() - this.marginTop - this.marginBottom;
     }
 
     private void assignDependentAttrs() {
@@ -98,10 +114,8 @@ public class PageLayout {
 
         this.maxLineWidth = getPageWidth() - this.marginLeft - this.marginRight;
 
-        float spacingBetweenLines = 1.15f;
-
-        this.lineHeight = this.fontSettings.getFontSize() * spacingBetweenLines;
-        this.linesPerPage = (int) Math.floor(startY / lineHeight);
+        this.lineHeight = this.fontSettings.getFontSize() * this.lineSpacing;
+        this.pageWritingHeight = getPageHeight() - this.marginTop - this.marginBottom;
     }
 
     private static void validateMargin(float value, String field) {
@@ -193,13 +207,6 @@ public class PageLayout {
     }
 
     /**
-     * @return maximum number of text lines that fit on a page
-     */
-    public int getLinesPerPage() {
-        return linesPerPage;
-    }
-
-    /**
      * @return font settings applied to text rendering
      */
     public FontSettings getFontSettings() {
@@ -232,5 +239,12 @@ public class PageLayout {
      */
     public float getMarginBottom() {
         return marginBottom;
+    }
+
+    /**
+     * @return height available for content after top/bottom margins are applied
+     */
+    public float getPageWritingHeight() {
+        return pageWritingHeight;
     }
 }

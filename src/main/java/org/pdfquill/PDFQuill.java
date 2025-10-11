@@ -5,6 +5,8 @@ import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
 import org.pdfquill.settings.page.PageLayout;
 import org.pdfquill.settings.permissions.PermissionSettings;
+import org.pdfquill.measurements.MeasurementUtils;
+
 
 import javax.imageio.ImageIO;
 import javax.xml.bind.DatatypeConverter;
@@ -12,6 +14,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -20,8 +23,8 @@ import java.util.function.Consumer;
 public class PDFQuill {
     private final PageLayout pageLayout;
     private final PermissionSettings permissionSettings;
-    private final DocumentManager documentManager;
-    private final ContentDrawer contentDrawer;
+    private final PDFWriter pdfWriter;
+    private final ContentFormatter contentFormatter;
     private byte[] pdf;
 
     /**
@@ -61,8 +64,8 @@ public class PDFQuill {
             builder.permissionSettingsCustomizer.accept(this.permissionSettings);
         }
 
-        this.documentManager = new DocumentManager(this.pageLayout);
-        this.contentDrawer = new ContentDrawer(this.documentManager, this.pageLayout, builder.preserveSpaces);
+        this.pdfWriter = new PDFWriter(this.pageLayout);
+        this.contentFormatter = new ContentFormatter(this.pageLayout, builder.preserveSpaces);
     }
 
     /**
@@ -78,18 +81,27 @@ public class PDFQuill {
     }
 
     /**
+     * Replaces the active font settings on the underlying layout.
+     *
+     * @param fontSettings new font configuration to apply
+     */
+    public void updateFontSettings(FontSettings fontSettings) {
+        this.pageLayout.setFontSettings(fontSettings);
+    }
+
+    /**
      * Finalises the document (if necessary) and returns the content encoded as Base64.
      *
      * @return Base64 encoded PDF bytes
      * @throws PrinterException when writing the PDF fails
      */
     public String getBase64PDFBytes() throws PrinterException {
-        if (this.documentManager.isClosed()) {
+        if (this.pdfWriter.isClosed()) {
             return DatatypeConverter.printBase64Binary(this.pdf);
         }
 
         try {
-            this.pdf = this.documentManager.saveAndGetBytes();
+            this.pdf = this.pdfWriter.saveAndGetBytes();
         } catch (IOException e) {
             throw new PrinterException("Erro ao criar PDF", e);
         }
@@ -113,7 +125,14 @@ public class PDFQuill {
      * @throws PrinterException when PDF operations fail
      */
     public PDFQuill print(String text) throws PrinterException {
-        this.contentDrawer.print(text);
+        try {
+            List<String> lines = this.contentFormatter.formatTextToLines(text);
+            for (String line : lines) {
+                this.pdfWriter.writeLine(line);
+            }
+        } catch (IOException e) {
+            throw new PrinterException("Erro ao escrever texto no PDF", e);
+        }
         return this;
     }
 
@@ -125,7 +144,7 @@ public class PDFQuill {
      * @throws IOException when the image cannot be read
      */
     public PDFQuill printImage(ByteArrayInputStream imgBytes) throws IOException {
-        this.contentDrawer.printImage(imgBytes);
+        this.pdfWriter.writeImage(imgBytes, 100, 100);
         return this;
     }
 
@@ -137,12 +156,9 @@ public class PDFQuill {
      * @throws IOException when the image cannot be encoded
      */
     public PDFQuill printImage(BufferedImage image) throws IOException {
-        int width =  image.getWidth();
+        int width = image.getWidth();
         int height = image.getHeight();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(image, "png", baos);
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        this.contentDrawer.printImage(bais, width, height);
+        this.pdfWriter.writeImage(image, width, height);
         return this;
     }
 
@@ -169,7 +185,16 @@ public class PDFQuill {
      * @throws PrinterException when barcode generation fails
      */
     public PDFQuill printBarcode(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
-        this.contentDrawer.printBarcode(code, barcodeType, height, width);
+        try {
+            BufferedImage image = this.contentFormatter.createBarcodeImage(code, barcodeType, height, width);
+
+            float imageHeight = BarcodeType.QRCODE.equals(barcodeType) ? MeasurementUtils.mmToPt(48f) : MeasurementUtils.mmToPt(12f);
+            float imageWidth = BarcodeType.QRCODE.equals(barcodeType) ? MeasurementUtils.mmToPt(48f) : MeasurementUtils.mmToPt(80f);
+
+            this.pdfWriter.writeImage(image, imageWidth, imageHeight);
+        } catch (IOException e) {
+            throw new PrinterException("Erro ao escrever código de barras no PDF", e);
+        }
         return this;
     }
 
@@ -180,7 +205,11 @@ public class PDFQuill {
      * @throws PrinterException when drawing fails
      */
     public PDFQuill cutSignal() throws PrinterException {
-        this.contentDrawer.cutSignal();
+        try {
+            this.pdfWriter.writeCutSignal();
+        } catch (IOException e) {
+            throw new PrinterException("Erro ao criar sinal de corte para PDF", e);
+        }
         return this;
     }
 
