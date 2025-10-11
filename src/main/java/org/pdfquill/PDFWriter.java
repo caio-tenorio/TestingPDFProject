@@ -45,6 +45,18 @@ public class PDFWriter {
         this.contentStream = null;
     }
 
+    private void incrementWrittenHeight() {
+        this.writtenHeight += this.pageLayout.getLineHeight();
+    }
+
+    private void incrementWrittenHeight(float height) {
+        this.writtenHeight += height + this.pageLayout.getLineHeight();
+    }
+
+    private float getCurrentY() {
+        return this.pageLayout.getStartY() - this.writtenHeight;
+    }
+
     /**
      * Writes a single line of text to the document, automatically handling pagination.
      *
@@ -53,7 +65,7 @@ public class PDFWriter {
      */
     public void writeLine(String line, FontType fontType) throws IOException {
         addNewPageIfNeeded();
-        float lineY = this.pageLayout.getStartY() - this.writtenHeight;
+        float lineY = getCurrentY();
         addTextLine(line, this.pageLayout.getStartX(), lineY, fontType);
         incrementWrittenHeight();
     }
@@ -70,7 +82,7 @@ public class PDFWriter {
         PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
         addNewPageIfNeeded(imageHeight);
 
-        float lineY = (this.pageLayout.getStartY() - this.writtenHeight) - imageHeight;
+        float lineY = (getCurrentY()) - imageHeight;
         float imageStartX = this.pageLayout.getStartX() + (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
         contentStream.drawImage(pdImage, imageStartX, lineY, imageWidth, imageHeight);
@@ -88,7 +100,7 @@ public class PDFWriter {
      * @throws IOException when drawing the signal fails
      */
     public void writeCutSignal() throws IOException {
-        float lineY = this.pageLayout.getStartY() - this.writtenHeight;
+        float lineY = getCurrentY();
 
         contentStream.beginText();
         contentStream.setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
@@ -126,12 +138,31 @@ public class PDFWriter {
         }
     }
 
-    private void incrementWrittenHeight() {
-        this.writtenHeight += this.pageLayout.getLineHeight();
+    private void addText(String text, float x, float y, FontType fontType) throws IOException {
+        contentStream.setFont(this.pageLayout.getFontSettings().getFontByFontType(fontType),
+                this.pageLayout.getFontSettings().getFontSize());
+        contentStream.newLineAtOffset(x, y);
+        contentStream.showText(text);
     }
 
-    private void incrementWrittenHeight(float height) {
-        this.writtenHeight += height + this.pageLayout.getLineHeight();
+    private void writeFromTextBuilder(TextBuilder textBuilder) throws IOException {
+        float x = this.pageLayout.getStartX();
+        float y = this.writtenHeight;
+        if (textBuilder != null) {
+            for (Text text : textBuilder.getTextList()) {
+                // TODO: checar se texto vai exceder a largura de escrita da página, se sim, quebrar página e mover cursor
+                // TODO: checar se texto vai exceder a altura de escrita da página, se sim, adicionar página nova e mover cursor
+                getWid
+            }
+        }
+    }
+
+    private void beginText() throws IOException {
+        this.contentStream.beginText();
+    }
+
+    private void endText() throws IOException {
+        this.contentStream.endText();
     }
 
     private boolean addNewPageIfNeeded() throws IOException {

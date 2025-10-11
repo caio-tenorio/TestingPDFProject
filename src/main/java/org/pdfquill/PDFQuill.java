@@ -123,7 +123,7 @@ public class PDFQuill {
      * @return fluent reference to this instance
      * @throws PrinterException when PDF operations fail
      */
-    public PDFQuill print(String text) throws PrinterException {
+    public PDFQuill printLine(String text) throws PrinterException {
         try {
             printLines(text, FontType.DEFAULT);
         } catch (IOException e) {
@@ -140,7 +140,7 @@ public class PDFQuill {
      * @return fluent reference to this instance
      * @throws PrinterException when PDF operations fail
      */
-    public PDFQuill print(String text, FontType fontType) throws PrinterException {
+    public PDFQuill printLine(String text, FontType fontType) throws PrinterException {
         try {
             printLines(text, fontType);
         } catch (IOException e) {
@@ -154,6 +154,10 @@ public class PDFQuill {
         for (String line : lines) {
             this.pdfWriter.writeLine(line, fontType);
         }
+    }
+
+    private void writeFromTextBuilder(TextBuilder textBuilder) {
+        this.pdfWriter.writeFromTextBuilder(textBuilder);
     }
 
     /**

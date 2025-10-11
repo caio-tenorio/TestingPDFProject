@@ -52,11 +52,6 @@ String pdfBase64 = quill.getBase64PDFBytes();
 - **Whitespace**: call `preserveSpaces(true)` to keep leading spaces, which is handy for manual alignment in receipts.
 - **Images**: `printImage` accepts a `ByteArrayInputStream`; convert files using `Files.readAllBytes(path)`.
 
-## Development Hints
-- Execute `mvn -q exec:java -Dexec.mainClass="org.pdfquill.Main"` to run the sample located at `src/main/java/org/pdfquill/Main.java`.
-- Use `MeasurementUtils.mmToPt(mm)` to convert millimeters to points when adjusting elements manually.
-- `PrinterException` wraps PDFBox and ZXing errors; handle it appropriately in your application.
-
 ## Dependencies
 - [Apache PDFBox](https://pdfbox.apache.org/) for PDF rendering
 - [ZXing](https://github.com/zxing/zxing) for barcode and QR Code generation
