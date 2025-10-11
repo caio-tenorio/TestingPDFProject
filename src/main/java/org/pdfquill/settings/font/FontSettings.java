@@ -2,6 +2,8 @@ package org.pdfquill.settings.font;
 
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
+import java.util.HashMap;
+
 /**
  * Mutable holder for the font family variations and size applied when drawing text.
  * Callers can reuse instances or obtain defensive copies via {@link #copy()} when
@@ -13,11 +15,13 @@ public class FontSettings {
     private PDType1Font boldFont = PDType1Font.COURIER_BOLD;
     private PDType1Font italicFont = PDType1Font.COURIER_OBLIQUE;
     private PDType1Font boldItalicFont = PDType1Font.COURIER_BOLD_OBLIQUE;
+    private HashMap<FontType, PDType1Font> fontMap = new HashMap<>();
 
     /**
      * Creates a configuration seeded with Courier fonts and size 12.
      */
     public FontSettings() {
+        loadFontMap();
     }
 
     /**
@@ -34,6 +38,22 @@ public class FontSettings {
         this.boldFont = other.boldFont;
         this.italicFont = other.italicFont;
         this.boldItalicFont = other.boldItalicFont;
+        loadFontMap();
+    }
+
+    public void loadFontMap() {
+        fontMap.put(FontType.DEFAULT, defaultFont);
+        fontMap.put(FontType.BOLD, boldFont);
+        fontMap.put(FontType.ITALIC, italicFont);
+        fontMap.put(FontType.ITALIC_BOLD, boldItalicFont);
+    }
+
+    public HashMap<FontType, PDType1Font> getFontMap() {
+        return fontMap;
+    }
+
+    public PDType1Font getFontByFontType(FontType fontType) {
+        return fontMap.get(fontType);
     }
 
     /**

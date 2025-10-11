@@ -2,17 +2,16 @@ package org.pdfquill;
 
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.paper.PaperType;
+import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.font.FontSettings;
 import org.pdfquill.settings.page.PageLayout;
 import org.pdfquill.settings.permissions.PermissionSettings;
 import org.pdfquill.measurements.MeasurementUtils;
 
 
-import javax.imageio.ImageIO;
 import javax.xml.bind.DatatypeConverter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
@@ -103,7 +102,7 @@ public class PDFQuill {
         try {
             this.pdf = this.pdfWriter.saveAndGetBytes();
         } catch (IOException e) {
-            throw new PrinterException("Erro ao criar PDF", e);
+            throw new PrinterException("Failed to create PDF", e);
         }
         return DatatypeConverter.printBase64Binary(this.pdf);
     }
@@ -126,14 +125,35 @@ public class PDFQuill {
      */
     public PDFQuill print(String text) throws PrinterException {
         try {
-            List<String> lines = this.contentFormatter.formatTextToLines(text);
-            for (String line : lines) {
-                this.pdfWriter.writeLine(line);
-            }
+            printLines(text, FontType.DEFAULT);
         } catch (IOException e) {
-            throw new PrinterException("Erro ao escrever texto no PDF", e);
+            throw new PrinterException("Failed to write text to the PDF", e);
         }
         return this;
+    }
+
+    /**
+     * Prints a text block, applying word wrapping and pagination automatically.
+     *
+     * @param text text to render
+     * @param fontType type of the font, if its bold, italic, etc
+     * @return fluent reference to this instance
+     * @throws PrinterException when PDF operations fail
+     */
+    public PDFQuill print(String text, FontType fontType) throws PrinterException {
+        try {
+            printLines(text, fontType);
+        } catch (IOException e) {
+            throw new PrinterException("Failed to write text to the PDF", e);
+        }
+        return this;
+    }
+
+    private void printLines(String text, FontType fontType) throws IOException {
+        List<String> lines = this.contentFormatter.formatTextToLines(text, fontType);
+        for (String line : lines) {
+            this.pdfWriter.writeLine(line, fontType);
+        }
     }
 
     /**
@@ -193,7 +213,7 @@ public class PDFQuill {
 
             this.pdfWriter.writeImage(image, imageWidth, imageHeight);
         } catch (IOException e) {
-            throw new PrinterException("Erro ao escrever código de barras no PDF", e);
+            throw new PrinterException("Failed to write barcode to the PDF", e);
         }
         return this;
     }
@@ -208,7 +228,7 @@ public class PDFQuill {
         try {
             this.pdfWriter.writeCutSignal();
         } catch (IOException e) {
-            throw new PrinterException("Erro ao criar sinal de corte para PDF", e);
+            throw new PrinterException("Failed to create cut mark for the PDF", e);
         }
         return this;
     }

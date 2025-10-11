@@ -8,6 +8,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.page.PageLayout;
 
 import javax.imageio.ImageIO;
@@ -50,10 +51,10 @@ public class PDFWriter {
      * @param line The text line to be written.
      * @throws IOException if writing to the content stream fails.
      */
-    public void writeLine(String line) throws IOException {
+    public void writeLine(String line, FontType fontType) throws IOException {
         addNewPageIfNeeded();
         float lineY = this.pageLayout.getStartY() - this.writtenHeight;
-        addTextLine(line, this.pageLayout.getStartX(), lineY);
+        addTextLine(line, this.pageLayout.getStartX(), lineY, fontType);
         incrementWrittenHeight();
     }
 
@@ -112,10 +113,10 @@ public class PDFWriter {
         return sb.toString();
     }
 
-    private void addTextLine(String text, float x, float y) throws IOException {
+    private void addTextLine(String text, float x, float y, FontType fontType) throws IOException {
         try {
             contentStream.beginText();
-            contentStream.setFont(this.pageLayout.getFontSettings().getDefaultFont(),
+            contentStream.setFont(this.pageLayout.getFontSettings().getFontByFontType(fontType),
                     this.pageLayout.getFontSettings().getFontSize());
             contentStream.newLineAtOffset(x, y);
             contentStream.showText(text);
