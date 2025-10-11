@@ -5,8 +5,10 @@ import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.barcode.BarcodeUtils;
+import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.page.PageLayout;
 
 import java.awt.*;
@@ -42,10 +44,10 @@ public class ContentFormatter {
      * @return A list of strings, where each entry is a line.
      * @throws IOException if font metrics cannot be read
      */
-    public List<String> formatTextToLines(String text) throws IOException {
+    public List<String> formatTextToLines(String text, FontType fontType) throws IOException {
         List<String> lines = new ArrayList<>();
 
-        if (getTextWidth(text) <= this.pageLayout.getMaxLineWidth()) {
+        if (getTextWidth(text, fontType) <= this.pageLayout.getMaxLineWidth()) {
             lines.add(text);
             return lines;
         }
@@ -53,7 +55,7 @@ public class ContentFormatter {
         final int n = text.length();
         float[] widths = new float[n];
         for (int i = 0; i < n; i++) {
-            widths[i] = getTextWidth(text.substring(i, i + 1));
+            widths[i] = getTextWidth(text.substring(i, i + 1),  fontType);
         }
 
         float[] prefix = new float[n + 1];
@@ -130,7 +132,7 @@ public class ContentFormatter {
             createGraphics(image, byteMatrix, width, height);
             return image;
         } catch (Throwable e) {
-            throw new PrinterException("Erro ao criar imagem do código de barras", e);
+            throw new PrinterException("Failed to create barcode image", e);
         }
     }
 
@@ -152,6 +154,14 @@ public class ContentFormatter {
 
     private float getTextWidth(String text) throws IOException {
         return this.pageLayout.getFontSettings().getDefaultFont().getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
+    }
+
+    private float getTextWidth(String text, FontType fontType) throws IOException {
+        return getFontByFontType(fontType).getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
+    }
+
+    private PDType1Font getFontByFontType(FontType fontType) {
+        return this.pageLayout.getFontSettings().getFontByFontType(fontType);
     }
 
     private static int lastWhitespaceBetween(String s, int from, int toInclusive) {
