@@ -165,11 +165,8 @@ public class PDFQuill {
         }
 
         List<Text> lines = this.contentFormatter.formatTextBuilder(textBuilder);
-        for (Text text : lines) {
-            // TODO: checar se texto vai exceder a largura de escrita da página, se sim, quebrar página e mover cursor
-            // TODO: checar se texto vai exceder a altura de escrita da página, se sim, adicionar página nova e mover cursor
 
-        }
+        this.pdfWriter.writeFromTextLines(lines);
     }
 
     /**

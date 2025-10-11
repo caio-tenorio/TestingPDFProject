@@ -5,9 +5,11 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.pdfquill.settings.FontUtils;
 import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.page.PageLayout;
 
@@ -16,6 +18,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Manages the PDF document lifecycle, providing a cursor-like interface for writing content.
@@ -138,15 +141,31 @@ public class PDFWriter {
         }
     }
 
-    private void addText(String text, float x, float y, FontType fontType, int fontSize) throws IOException {
-        contentStream.setFont(this.pageLayout.getFontSettings().getFontByFontType(fontType),
-                fontSize);
+    private void addText(String text, float x, float y, PDType1Font font, int fontSize) throws IOException {
+        contentStream.setFont(font, fontSize);
         contentStream.newLineAtOffset(x, y);
         contentStream.showText(text);
     }
 
-    private void writeFromTextBuilder(TextBuilder textBuilder) throws IOException {
+    private void writeFromTextLines(List<Text> textList) throws IOException {
+        float x = this.pageLayout.getStartX();
+        beginText();
+        for (Text text : textList) {
+            PDType1Font font = text.getFontSetting().getSelectedFont();
+            int fontSize = text.getFontSetting().getFontSize();
+            float textWidth = FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
 
+            if (textWidth <= this.pageLayout.getMaxLineWidth()) {
+                x = x + textWidth;
+                addText(text.getText(), x, writtenHeight, font,  fontSize);
+            } else {
+                // TODO: quebrar texto até ele
+                float sizeToFillLine = this.pageLayout.getMaxLineWidth() - x;
+
+
+            }
+        }
+        endText();
     }
 
     private void beginText() throws IOException {

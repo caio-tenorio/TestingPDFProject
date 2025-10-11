@@ -8,6 +8,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.barcode.BarcodeUtils;
+import org.pdfquill.settings.FontUtils;
 import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.page.PageLayout;
 
@@ -87,7 +88,7 @@ public class ContentFormatter {
 
             int breakIdx = end;
             if (end < n && !Character.isWhitespace(text.charAt(end - 1)) && !Character.isWhitespace(text.charAt(end))) {
-                int lastSpace = lastWhitespaceBetween(text, start, end - 1);
+                int lastSpace = FontUtils.lastWhitespaceBetween(text, start, end - 1);
                 if (lastSpace >= start + 1) {
                     breakIdx = lastSpace;
                 }
@@ -179,26 +180,7 @@ public class ContentFormatter {
         graphics.dispose();
     }
 
-    private float getTextWidth(String text) throws IOException {
-        return this.pageLayout.getFontSettings().getDefaultFont().getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
-    }
-
-    private float getTextWidth(String text, FontType fontType) throws IOException {
-        return getFontByFontType(fontType).getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
-    }
-
     private float getTextWidth(String text, PDType1Font font) throws IOException {
-        return font.getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
-    }
-
-    private PDType1Font getFontByFontType(FontType fontType) {
-        return this.pageLayout.getFontSettings().getFontByFontType(fontType);
-    }
-
-    private static int lastWhitespaceBetween(String s, int from, int toInclusive) {
-        for (int i = toInclusive; i >= from; i--) {
-            if (Character.isWhitespace(s.charAt(i))) return i;
-        }
-        return -1;
+        return FontUtils.getTextWidth(text, font, this.pageLayout.getFontSettings().getFontSize());
     }
 }
