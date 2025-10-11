@@ -44,10 +44,10 @@ public class ContentFormatter {
      * @return A list of strings, where each entry is a line.
      * @throws IOException if font metrics cannot be read
      */
-    public List<String> formatTextToLines(String text, FontType fontType) throws IOException {
+    public List<String> formatTextToLines(String text, PDType1Font font) throws IOException {
         List<String> lines = new ArrayList<>();
 
-        if (getTextWidth(text, fontType) <= this.pageLayout.getMaxLineWidth()) {
+        if (getTextWidth(text, font) <= this.pageLayout.getMaxLineWidth()) {
             lines.add(text);
             return lines;
         }
@@ -55,7 +55,7 @@ public class ContentFormatter {
         final int n = text.length();
         float[] widths = new float[n];
         for (int i = 0; i < n; i++) {
-            widths[i] = getTextWidth(text.substring(i, i + 1),  fontType);
+            widths[i] = getTextWidth(text.substring(i, i + 1),  font);
         }
 
         float[] prefix = new float[n + 1];
@@ -102,6 +102,33 @@ public class ContentFormatter {
         }
 
         return lines;
+    }
+
+    public List<Text> formatTextBuilder(TextBuilder textBuilder) throws IOException {
+        List<Text> textList = textBuilder.getTextList();
+        List<Text> resultTextList = new ArrayList<>();
+
+        for (Text text : textList) {
+            List<String> lines = formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont());
+            if (lines.size() > 1) {
+                List<Text> newLines = createTextsFromSource(text, lines);
+                resultTextList.addAll(newLines);
+            } else  {
+                resultTextList.add(text);
+            }
+        }
+
+        return resultTextList;
+    }
+
+    private List<Text> createTextsFromSource(Text text, List<String> lines) throws IOException {
+        List<Text> textList = new ArrayList<>();
+        for (String line : lines) {
+            Text tempText = new Text(text.getFontSetting(), line);
+            textList.add(tempText);
+        }
+
+        return textList;
     }
 
     /**
@@ -158,6 +185,10 @@ public class ContentFormatter {
 
     private float getTextWidth(String text, FontType fontType) throws IOException {
         return getFontByFontType(fontType).getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
+    }
+
+    private float getTextWidth(String text, PDType1Font font) throws IOException {
+        return font.getStringWidth(text) * this.pageLayout.getFontSettings().getFontSize() / 1000f;
     }
 
     private PDType1Font getFontByFontType(FontType fontType) {

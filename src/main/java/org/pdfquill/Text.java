@@ -1,6 +1,7 @@
 package org.pdfquill;
 
 import org.pdfquill.settings.font.FontSettings;
+import org.pdfquill.settings.font.FontType;
 
 public class Text {
     private final FontSettings fontSetting;

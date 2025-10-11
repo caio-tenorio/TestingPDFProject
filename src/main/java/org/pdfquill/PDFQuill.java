@@ -1,5 +1,6 @@
 package org.pdfquill;
 
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontType;
@@ -13,6 +14,7 @@ import javax.xml.bind.DatatypeConverter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -150,14 +152,24 @@ public class PDFQuill {
     }
 
     private void printLines(String text, FontType fontType) throws IOException {
-        List<String> lines = this.contentFormatter.formatTextToLines(text, fontType);
+        PDType1Font font = this.pageLayout.getFontSettings().getFontByFontType(fontType);
+        List<String> lines = this.contentFormatter.formatTextToLines(text, font);
         for (String line : lines) {
             this.pdfWriter.writeLine(line, fontType);
         }
     }
 
-    private void writeFromTextBuilder(TextBuilder textBuilder) {
-        this.pdfWriter.writeFromTextBuilder(textBuilder);
+    private void writeFromTextBuilder(TextBuilder textBuilder) throws IOException {
+        if (textBuilder != null) {
+            return;
+        }
+
+        List<Text> lines = this.contentFormatter.formatTextBuilder(textBuilder);
+        for (Text text : lines) {
+            // TODO: checar se texto vai exceder a largura de escrita da página, se sim, quebrar página e mover cursor
+            // TODO: checar se texto vai exceder a altura de escrita da página, se sim, adicionar página nova e mover cursor
+
+        }
     }
 
     /**

@@ -138,23 +138,15 @@ public class PDFWriter {
         }
     }
 
-    private void addText(String text, float x, float y, FontType fontType) throws IOException {
+    private void addText(String text, float x, float y, FontType fontType, int fontSize) throws IOException {
         contentStream.setFont(this.pageLayout.getFontSettings().getFontByFontType(fontType),
-                this.pageLayout.getFontSettings().getFontSize());
+                fontSize);
         contentStream.newLineAtOffset(x, y);
         contentStream.showText(text);
     }
 
     private void writeFromTextBuilder(TextBuilder textBuilder) throws IOException {
-        float x = this.pageLayout.getStartX();
-        float y = this.writtenHeight;
-        if (textBuilder != null) {
-            for (Text text : textBuilder.getTextList()) {
-                // TODO: checar se texto vai exceder a largura de escrita da página, se sim, quebrar página e mover cursor
-                // TODO: checar se texto vai exceder a altura de escrita da página, se sim, adicionar página nova e mover cursor
-                getWid
-            }
-        }
+
     }
 
     private void beginText() throws IOException {
