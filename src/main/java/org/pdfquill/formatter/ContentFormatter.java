@@ -1,4 +1,4 @@
-package org.pdfquill;
+package org.pdfquill.formatter;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
@@ -6,10 +6,10 @@ import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.pdfquill.PrinterException;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.barcode.BarcodeUtils;
 import org.pdfquill.settings.font.FontUtils;
-import org.pdfquill.writer.PDFWriter;
 import org.pdfquill.writer.SplitParts;
 import org.pdfquill.writer.Text;
 import org.pdfquill.writer.TextBuilder;

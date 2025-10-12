@@ -9,7 +9,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.pdfquill.ContentFormatter;
+import org.pdfquill.formatter.ContentFormatter;
 import org.pdfquill.settings.font.FontUtils;
 import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.PageLayout;
