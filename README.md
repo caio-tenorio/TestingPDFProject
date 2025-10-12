@@ -20,7 +20,7 @@ mvn clean package
 ```
 The compiled artifact will be available at `target/pdf-quill-1.0-SNAPSHOT.jar`. Run `mvn install` to publish it into the local Maven cache and consume it from other Maven or Gradle projects.
 
-## Quick Start 1
+## Quick Start
 
 ```java
 import org.pdfquill.PDFQuill;
