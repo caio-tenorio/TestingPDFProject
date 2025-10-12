@@ -174,7 +174,6 @@ public class PDFWriter {
                     textList.addAll(idx + 1, textLines);
                     idx = idx + 1;
                 } else {
-
                     x = this.pageLayout.getStartX();
                     textWidth = 0;
                     incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing());
@@ -202,7 +201,7 @@ public class PDFWriter {
                 addTextLine(line.getText(), line.getX(), textLinePlan.getY(), line.getFontSetting().getSelectedFont(),  line.getFontSetting().getFontSize());
             }
         }
-        incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing()); // TODO: Get line spacing from the right place
+        incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing());
     }
 
     private void beginText() throws IOException {

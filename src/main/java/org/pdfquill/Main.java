@@ -66,11 +66,11 @@ public class Main {
 
         FontSettings secondTextFontSettings = new FontSettings();
         secondTextFontSettings.setSelectedFont(secondTextFontSettings.getBoldFont());
-        secondTextFontSettings.setFontSize(12);
+        secondTextFontSettings.setFontSize(34);
         TextBuilder textBuilder = new TextBuilder();
         textBuilder.addText(new Text("MEU TEXTO AQUI DO NEGóCIO aklsjdkajsdkj", new FontSettings()))
                 .addText(new Text("Meu segundo texto.", secondTextFontSettings))
-                .addText(new Text(" Terceiro texto pra a gente ver aqui como fica", new FontSettings()));
+                .addText(new Text(" Terceiro texto pra a gente ver aqui como fica", secondTextFontSettings));
 
         resource.writeFromTextBuilder(textBuilder);
 
