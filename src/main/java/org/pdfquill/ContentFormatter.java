@@ -22,91 +22,6 @@ import java.util.Map;
  * Processes and formats content, like text and barcodes, preparing it for rendering.
  */
 public class ContentFormatter {
-    /**
-     * Wraps a block of text into multiple lines based on the current layout.
-     *
-     * @param text text to format
-     * @return A list of strings, where each entry is a line.
-     * @throws IOException if font metrics cannot be read
-     */
-    public static List<String> formatTextToLines(String text, PDType1Font font, int fontSize,
-                                          float maxWidth, boolean preserveSpaces) throws IOException {
-        List<String> lines = new ArrayList<>();
-
-        if (getTextWidth(text, font, fontSize) <= maxWidth) {
-            lines.add(text);
-            return lines;
-        }
-
-        final int n = text.length();
-        float[] widths = new float[n];
-        for (int i = 0; i < n; i++) {
-            widths[i] = getTextWidth(text.substring(i, i + 1),  font, fontSize);
-        }
-
-        float[] prefix = new float[n + 1];
-        for (int i = 1; i <= n; i++) {
-            prefix[i] = prefix[i - 1] + widths[i - 1];
-        }
-
-        int start = 0;
-
-        while (start < n) {
-            if (!preserveSpaces)
-                while (start < n && Character.isWhitespace(text.charAt(start))) start++;
-
-            if (start >= n) break;
-
-            int lo = start + 1, hi = n, best = start + 1;
-            while (lo <= hi) {
-                int mid = (lo + hi) >>> 1;
-                float w = prefix[mid] - prefix[start];
-                if (w <= maxWidth) {
-                    best = mid;
-                    lo = mid + 1;
-                } else {
-                    hi = mid - 1;
-                }
-            }
-
-            int end = best;
-
-            int breakIdx = end;
-            if (end < n && !Character.isWhitespace(text.charAt(end - 1)) && !Character.isWhitespace(text.charAt(end))) {
-                int lastSpace = FontUtils.lastWhitespaceBetween(text, start, end - 1);
-                if (lastSpace >= start + 1) {
-                    breakIdx = lastSpace;
-                }
-            }
-
-            if (breakIdx == start) breakIdx = end;
-
-            lines.add(text.substring(start, breakIdx).stripTrailing());
-
-            start = breakIdx;
-            while (start < n && Character.isWhitespace(text.charAt(start))) start++;
-        }
-
-        return lines;
-    }
-
-    public static List<Text> formatTextBuilder(TextBuilder textBuilder, float maxWidth) throws IOException {
-        List<Text> textList = textBuilder.getTextList();
-        List<Text> resultTextList = new ArrayList<>();
-
-        for (Text text : textList) {
-            List<String> lines = formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont(),
-                    text.getFontSetting().getFontSize(), maxWidth, false);
-            if (lines.size() > 1) {
-                List<Text> newLines = createTextsFromSource(text, lines);
-                resultTextList.addAll(newLines);
-            } else  {
-                resultTextList.add(text);
-            }
-        }
-
-        return resultTextList;
-    }
 
     public static List<Text> createTextsFromSource(Text text, List<String> lines) throws IOException {
         List<Text> textList = new ArrayList<>();
@@ -168,5 +83,120 @@ public class ContentFormatter {
 
     private static float getTextWidth(String text, PDType1Font font, int fontSize) throws IOException {
         return FontUtils.getTextWidth(text, font, fontSize);
+    }
+
+    public static List<Text> formatTextBuilder(TextBuilder textBuilder, float maxWidth) throws IOException {
+        List<Text> textList = textBuilder.getTextList();
+        List<Text> resultTextList = new ArrayList<>();
+
+        for (Text text : textList) {
+            List<String> lines = formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont(),
+                    text.getFontSetting().getFontSize(), maxWidth, false);
+            if (lines.size() > 1) {
+                List<Text> newLines = createTextsFromSource(text, lines);
+                resultTextList.addAll(newLines);
+            } else  {
+                resultTextList.add(text);
+            }
+        }
+
+        return resultTextList;
+    }
+
+    /**
+     * Wraps a block of text into multiple lines based on the current layout.
+     *
+     * @param text text to format
+     * @return A list of strings, where each entry is a line.
+     * @throws IOException if font metrics cannot be read
+     */
+    public static List<String> formatTextToLines(String text, PDType1Font font, int fontSize,
+                                                 float maxWidth, boolean preserveSpaces) throws IOException {
+        List<String> lines = new ArrayList<>();
+
+        if (getTextWidth(text, font, fontSize) <= maxWidth) {
+            lines.add(text);
+            return lines;
+        }
+
+        final int n = text.length();
+        float[] widths = new float[n];
+        for (int i = 0; i < n; i++) {
+            widths[i] = getTextWidth(text.substring(i, i + 1),  font, fontSize);
+        }
+
+        float[] prefix = new float[n + 1];
+        for (int i = 1; i <= n; i++) {
+            prefix[i] = prefix[i - 1] + widths[i - 1];
+        }
+
+        int start = 0;
+
+        while (start < n) {
+            if (!preserveSpaces)
+                while (start < n && Character.isWhitespace(text.charAt(start))) start++;
+
+            if (start >= n) break;
+
+            int lo = start + 1, hi = n, best = start + 1;
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                float w = prefix[mid] - prefix[start];
+                if (w <= maxWidth) {
+                    best = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+
+            int end = best;
+
+            int breakIdx = end;
+            if (end < n && !Character.isWhitespace(text.charAt(end - 1)) && !Character.isWhitespace(text.charAt(end))) {
+                int lastSpace = FontUtils.lastWhitespaceBetween(text, start, end - 1);
+                if (lastSpace >= start + 1) {
+                    breakIdx = lastSpace;
+                }
+            }
+
+            if (breakIdx == start) breakIdx = end;
+
+            lines.add(text.substring(start, breakIdx).stripTrailing());
+
+            start = breakIdx;
+            while (start < n && Character.isWhitespace(text.charAt(start))) start++;
+        }
+
+        return lines;
+    }
+
+    //TODO: make this break in last white space
+    public static List<String> breakTextAtWidth(Text text, float width) throws IOException {
+        List<String> lines = new ArrayList<>();
+
+        PDType1Font font = text.getFontSetting().getSelectedFont();
+        int fontSize = text.getFontSetting().getFontSize();
+        String strText = text.getText();
+        float textWidth = 0;
+        char[] charArray = strText.toCharArray();
+        int result = 0;
+        for (int i = 0; i < charArray.length; i++) {
+            float charWidth = getTextWidth(String.valueOf(charArray[i]), font, fontSize);
+            if (textWidth + charWidth > width) {
+                result = i - 1;
+                break;
+            }
+            textWidth = textWidth + charWidth;
+        }
+
+        if (result <= 0) {
+            return lines;
+        }
+
+        lines.add(strText.substring(0, result));
+        lines.add(strText.substring(result));
+
+        return lines;
     }
 }

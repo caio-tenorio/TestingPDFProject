@@ -18,6 +18,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -67,10 +68,10 @@ public class PDFWriter {
      * @throws IOException if writing to the content stream fails.
      */
     public void writeLine(String line, FontType fontType) throws IOException {
+        incrementWrittenHeight();
         addNewPageIfNeeded();
         float lineY = getCurrentY();
         addTextLine(line, this.pageLayout.getStartX(), lineY, fontType);
-        incrementWrittenHeight();
     }
 
     /**
@@ -84,12 +85,12 @@ public class PDFWriter {
     public void writeImage(BufferedImage image, float imageWidth, float imageHeight) throws IOException {
         PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
         addNewPageIfNeeded(imageHeight);
-
+        incrementWrittenHeight();
         float lineY = (getCurrentY()) - imageHeight;
         float imageStartX = this.pageLayout.getStartX() + (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
         contentStream.drawImage(pdImage, imageStartX, lineY, imageWidth, imageHeight);
-        incrementWrittenHeight(imageHeight + this.pageLayout.getLineHeight());
+        incrementWrittenHeight(imageHeight);
     }
 
     public void writeImage(ByteArrayInputStream imgBytes, int width, int height) throws IOException {
@@ -153,30 +154,58 @@ public class PDFWriter {
         float x = this.pageLayout.getStartX();
         float textWidth = 0;
         int idx = 0;
+        int maxFontSize = 0;
+        int planIdx = 0;
+        List<TextLinePlan> textPlanList = new ArrayList<>();
+        textPlanList.add(new TextLinePlan());
         while (idx < textList.size()) {
             Text text = textList.get(idx);
 
             PDType1Font font = text.getFontSetting().getSelectedFont();
             int fontSize = text.getFontSetting().getFontSize();
-            textWidth = textWidth + FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
+            float currentTextWidth = FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
+            boolean willExceedLineLimit = (textWidth + currentTextWidth > this.pageLayout.getMaxLineWidth());
 
-            if (textWidth <= this.pageLayout.getMaxLineWidth()) {
-                addTextLine(text.getText(), x, getCurrentY(), font,  fontSize);
-                x = x + textWidth;
+            if (willExceedLineLimit) {
+                float remaining = Math.abs(this.pageLayout.getMaxLineWidth() - (textWidth + currentTextWidth));
+                float sizeToBreakLine = currentTextWidth - remaining;
+                List<String> stringList = ContentFormatter.breakTextAtWidth(text, sizeToBreakLine);
+                if (stringList.size() > 0) {
+                    List<Text> textLines = ContentFormatter.createTextsFromSource(text, stringList);
+                    textList.addAll(idx + 1, textLines);
+                    idx = idx + 1;
+                } else {
+
+                    x = this.pageLayout.getStartX();
+                    textWidth = 0;
+                    incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing());
+                    maxFontSize = 0;
+                    planIdx = planIdx + 1;
+                    textPlanList.add(new TextLinePlan());
+                }
+
             } else {
-                x = this.pageLayout.getStartX();
-                textWidth = 0;
-                // TODO: quebrar texto até ele
-                float sizeToFillLine = this.pageLayout.getMaxLineWidth() - x;
-                List<String> stringList = ContentFormatter.formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont(), // TODO: optimize this, i could build textlines inside the same method
-                        text.getFontSetting().getFontSize(), sizeToFillLine, false);
-                List<Text> textLines = ContentFormatter.createTextsFromSource(text, stringList);
-                textList.addAll(idx +1, textLines);
-                incrementWrittenHeight(textBuilder.getMaxFontSize() * this.pageLayout.getLineSpacing()); // TODO: This is wrong, i need to get the max font size from the Texts that where on the same line, not all of them
+                if (text.getFontSetting().getFontSize() > maxFontSize) {
+                    maxFontSize = text.getFontSetting().getFontSize();
+                }
+                float y = getCurrentY() - maxFontSize * this.pageLayout.getLineSpacing();
+                textWidth = textWidth + currentTextWidth;
+                //TODO: Preciso saber o maxFontSize antes de escrever aqui para consegui incrementar a altura antes de escrever
+                text.setX(x);
+                textPlanList.get(planIdx).setY(y);
+                textPlanList.get(planIdx).getTextList().add(text);
+                x = x + currentTextWidth;
+                idx = idx + 1;
+
             }
-            idx =  idx + 1;
         }
-        incrementWrittenHeight(textBuilder.getMaxFontSize() * this.pageLayout.getLineSpacing()); // TODO: Get line spacing from the right place
+
+        for (TextLinePlan textLinePlan: textPlanList) {
+            for (Text line : textLinePlan.getTextList()) {
+                addTextLine(line.getText(), line.getX(), textLinePlan.getY(), line.getFontSetting().getSelectedFont(),  line.getFontSetting().getFontSize());
+            }
+        }
+        incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing()); // TODO: Get line spacing from the right place
     }
 
     private void beginText() throws IOException {
