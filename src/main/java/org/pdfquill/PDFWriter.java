@@ -162,7 +162,6 @@ public class PDFWriter {
             Text text = textList.get(idx);
 
             PDType1Font font = text.getFontSetting().getSelectedFont();
-            int fontSize = text.getFontSetting().getFontSize();
             float currentTextWidth = FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
             boolean willExceedLineLimit = (textWidth + currentTextWidth > this.pageLayout.getMaxLineWidth());
 
@@ -170,7 +169,7 @@ public class PDFWriter {
                 float remaining = Math.abs(this.pageLayout.getMaxLineWidth() - (textWidth + currentTextWidth));
                 float sizeToBreakLine = currentTextWidth - remaining;
                 List<String> stringList = ContentFormatter.breakTextAtWidth(text, sizeToBreakLine);
-                if (stringList.size() > 0) {
+                if (!stringList.isEmpty()) {
                     List<Text> textLines = ContentFormatter.createTextsFromSource(text, stringList);
                     textList.addAll(idx + 1, textLines);
                     idx = idx + 1;
@@ -190,13 +189,11 @@ public class PDFWriter {
                 }
                 float y = getCurrentY() - maxFontSize * this.pageLayout.getLineSpacing();
                 textWidth = textWidth + currentTextWidth;
-                //TODO: Preciso saber o maxFontSize antes de escrever aqui para consegui incrementar a altura antes de escrever
                 text.setX(x);
                 textPlanList.get(planIdx).setY(y);
                 textPlanList.get(planIdx).getTextList().add(text);
                 x = x + currentTextWidth;
                 idx = idx + 1;
-
             }
         }
 
