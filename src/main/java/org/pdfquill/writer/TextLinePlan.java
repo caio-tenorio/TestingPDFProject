@@ -1,4 +1,4 @@
-package org.pdfquill;
+package org.pdfquill.writer;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -9,6 +9,10 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.barcode.BarcodeUtils;
 import org.pdfquill.settings.font.FontUtils;
+import org.pdfquill.writer.PDFWriter;
+import org.pdfquill.writer.SplitParts;
+import org.pdfquill.writer.Text;
+import org.pdfquill.writer.TextBuilder;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -171,32 +175,67 @@ public class ContentFormatter {
         return lines;
     }
 
-    //TODO: make this break in last white space
-    public static List<String> breakTextAtWidth(Text text, float width) throws IOException {
-        List<String> lines = new ArrayList<>();
+    public static int findWrapIndex(String text, PDType1Font font, int fontSize, float maxWidth) throws IOException {
+        if (text.isEmpty() || maxWidth <= 0) {
+            return 0;
+        }
 
-        PDType1Font font = text.getFontSetting().getSelectedFont();
-        int fontSize = text.getFontSetting().getFontSize();
-        String strText = text.getText();
-        float textWidth = 0;
-        char[] charArray = strText.toCharArray();
-        int result = 0;
-        for (int i = 0; i < charArray.length; i++) {
-            float charWidth = getTextWidth(String.valueOf(charArray[i]), font, fontSize);
-            if (textWidth + charWidth > width) {
-                result = i - 1;
+        if (FontUtils.getTextWidth(text, font, fontSize) <= maxWidth) {
+            return text.length();
+        }
+
+        float width = 0f;
+        int lastFitting = 0;
+        for (int i = 0; i < text.length(); i++) {
+            float charWidth = FontUtils.getTextWidth(text.substring(i, i + 1), font, fontSize);
+            if (width + charWidth > maxWidth) {
                 break;
             }
-            textWidth = textWidth + charWidth;
+            width += charWidth;
+            lastFitting = i + 1;
         }
 
-        if (result <= 0) {
-            return lines;
+        if (lastFitting == 0) {
+            return 0;
         }
 
-        lines.add(strText.substring(0, result));
-        lines.add(strText.substring(result));
+        int breakIdx = lastFitting;
+        int lastWhitespace = FontUtils.lastWhitespaceBetween(text, 0, lastFitting - 1);
+        if (lastWhitespace >= 0 && lastWhitespace < lastFitting) {
+            breakIdx = lastWhitespace + 1;
+        }
+        return breakIdx;
+    }
 
-        return lines;
+    public static String stripLeadingWhitespace(String value) {
+        int index = 0;
+        while (index < value.length() && Character.isWhitespace(value.charAt(index))) {
+            index++;
+        }
+        return value.substring(index);
+    }
+
+    public static SplitParts splitText(Text text, float availableWidth) throws IOException {
+        PDType1Font font = text.getFontSetting().getSelectedFont();
+        int fontSize = text.getFontSetting().getFontSize();
+        String content = text.getText();
+
+        int breakIdx = ContentFormatter.findWrapIndex(content, font, fontSize, availableWidth);
+        if (breakIdx <= 0) {
+            breakIdx = Math.min(1, content.length());
+        }
+
+        if (breakIdx >= content.length()) {
+            return new SplitParts(content, null);
+        }
+
+        String head = content.substring(0, breakIdx).stripTrailing();
+        String tail = ContentFormatter.stripLeadingWhitespace(content.substring(breakIdx));
+
+        if (head.isEmpty()) {
+            return new SplitParts(null, tail);
+        }
+
+        return new SplitParts(head, tail);
     }
 }

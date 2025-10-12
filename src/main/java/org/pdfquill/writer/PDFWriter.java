@@ -1,4 +1,4 @@
-package org.pdfquill;
+package org.pdfquill.writer;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -9,6 +9,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.pdfquill.ContentFormatter;
 import org.pdfquill.settings.font.FontUtils;
 import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.PageLayout;
@@ -18,7 +19,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 /**
@@ -149,70 +152,70 @@ public class PDFWriter {
     //TODO: This method is using addTextLine which opens and closes text everytime, that's not right
     //TODO: change to open only once and update using newLineAtOffset passing Y as 0 if we need to stay at the same line
     public void writeFromTextLines(TextBuilder textBuilder) throws IOException {
-        List<Text> textList = textBuilder.getTextList();
-
-        float x = this.pageLayout.getStartX();
-        float textWidth = 0;
-        int idx = 0;
-        int maxFontSize = 0;
-        int planIdx = 0;
-        List<TextLinePlan> textPlanList = new ArrayList<>();
-        textPlanList.add(new TextLinePlan());
-        while (idx < textList.size()) {
-            Text text = textList.get(idx);
-
-            PDType1Font font = text.getFontSetting().getSelectedFont();
-            float currentTextWidth = FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
-            boolean willExceedLineLimit = (textWidth + currentTextWidth > this.pageLayout.getMaxLineWidth());
-
-            if (willExceedLineLimit) {
-                float remaining = Math.abs(this.pageLayout.getMaxLineWidth() - (textWidth + currentTextWidth));
-                float sizeToBreakLine = currentTextWidth - remaining;
-                List<String> stringList = ContentFormatter.breakTextAtWidth(text, sizeToBreakLine);
-                if (!stringList.isEmpty()) {
-                    List<Text> textLines = ContentFormatter.createTextsFromSource(text, stringList);
-                    textList.addAll(idx + 1, textLines);
-                    idx = idx + 1;
-                } else {
-                    x = this.pageLayout.getStartX();
-                    textWidth = 0;
-                    maxFontSize = 0;
-                    planIdx = planIdx + 1;
-                    textPlanList.add(new TextLinePlan());
-                }
-
-            } else {
-                if (text.getFontSetting().getFontSize() > maxFontSize) {
-                    maxFontSize = text.getFontSetting().getFontSize();
-                }
-                float y = getCurrentY() - maxFontSize * this.pageLayout.getLineSpacing();
-                textWidth = textWidth + currentTextWidth;
-                text.setX(x);
-                textPlanList.get(planIdx).setY(y);
-                textPlanList.get(planIdx).setMaxFontSize(maxFontSize);
-                textPlanList.get(planIdx).getTextList().add(text);
-                x = x + currentTextWidth;
-                idx = idx + 1;
-            }
+        if (textBuilder == null || textBuilder.getTextList().isEmpty()) {
+            return;
         }
 
-        for (TextLinePlan textLinePlan: textPlanList) {
-            float lineHeigh = textLinePlan.getMaxFontSize() * pageLayout.getLineSpacing();
-            addNewPageIfNeeded(lineHeigh);
-            float y = getCurrentY() - lineHeigh;
+        Deque<Text> pendingTexts = new ArrayDeque<>(textBuilder.getTextList());
+        List<TextLinePlan> lines = new ArrayList<>();
+        LineAccumulator currentLine = new LineAccumulator(this.pageLayout.getStartX());
+        float maxLineWidth = this.pageLayout.getMaxLineWidth();
+
+        while (!pendingTexts.isEmpty()) {
+            Text current = pendingTexts.pollFirst();
+            if (current == null) {
+                continue;
+            }
+
+            String rawText = current.getText();
+            if (rawText == null || rawText.isEmpty()) {
+                continue;
+            }
+
+            PDType1Font font = current.getFontSetting().getSelectedFont();
+            int fontSize = current.getFontSetting().getFontSize();
+            float availableWidth = maxLineWidth - currentLine.getWidth();
+            float textWidth = FontUtils.getTextWidth(rawText, font, fontSize);
+
+            if (textWidth <= availableWidth) {
+                Text chunk = new Text(rawText, current.getFontSetting());
+                currentLine.addChunk(chunk, textWidth, fontSize);
+                continue;
+            }
+
+            if (availableWidth <= 0 || (!currentLine.isEmpty() && FontUtils.getTextWidth(rawText.substring(0, 1), font, fontSize) > availableWidth)) {
+                currentLine.flushInto(lines);
+                pendingTexts.addFirst(current);
+                continue;
+            }
+
+            SplitParts split = ContentFormatter.splitText(current, availableWidth);
+            if (split.head() != null && !split.head().isEmpty()) {
+                float headWidth = FontUtils.getTextWidth(split.head(), font, fontSize);
+                Text chunk = new Text(split.head(), current.getFontSetting());
+                currentLine.addChunk(chunk, headWidth, fontSize);
+            }
+
+            if (split.tail() == null || split.tail().isEmpty()) {
+                continue;
+            }
+
+            currentLine.flushInto(lines);
+            pendingTexts.addFirst(new Text(split.tail(), current.getFontSetting()));
+        }
+
+        currentLine.flushInto(lines);
+
+        for (TextLinePlan textLinePlan : lines) {
+            float lineHeight = textLinePlan.getMaxFontSize() * pageLayout.getLineSpacing();
+            addNewPageIfNeeded(lineHeight);
+            float y = getCurrentY() - lineHeight;
             for (Text line : textLinePlan.getTextList()) {
-                addTextLine(line.getText(), line.getX(), y, line.getFontSetting().getSelectedFont(),  line.getFontSetting().getFontSize());
+                addTextLine(line.getText(), line.getX(), y,
+                        line.getFontSetting().getSelectedFont(), line.getFontSetting().getFontSize());
             }
-            incrementWrittenHeight(lineHeigh);
+            incrementWrittenHeight(lineHeight);
         }
-    }
-
-    private void beginText() throws IOException {
-        this.contentStream.beginText();
-    }
-
-    private void endText() throws IOException {
-        this.contentStream.endText();
     }
 
     private boolean addNewPageIfNeeded() throws IOException {

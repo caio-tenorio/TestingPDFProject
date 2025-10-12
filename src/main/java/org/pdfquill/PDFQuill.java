@@ -8,6 +8,8 @@ import org.pdfquill.settings.font.FontSettings;
 import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.PageLayout;
 import org.pdfquill.settings.permissions.PermissionSettings;
+import org.pdfquill.writer.PDFWriter;
+import org.pdfquill.writer.TextBuilder;
 
 import javax.xml.bind.DatatypeConverter;
 import java.awt.image.BufferedImage;

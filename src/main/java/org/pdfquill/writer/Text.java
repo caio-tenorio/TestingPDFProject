@@ -1,4 +1,4 @@
-package org.pdfquill;
+package org.pdfquill.writer;
 
 import org.pdfquill.settings.font.FontSettings;
 
