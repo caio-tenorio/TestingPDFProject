@@ -15,7 +15,8 @@ public class FontSettings {
     private PDType1Font boldFont = PDType1Font.COURIER_BOLD;
     private PDType1Font italicFont = PDType1Font.COURIER_OBLIQUE;
     private PDType1Font boldItalicFont = PDType1Font.COURIER_BOLD_OBLIQUE;
-    private HashMap<FontType, PDType1Font> fontMap = new HashMap<>();
+    private final HashMap<FontType, PDType1Font> fontMap = new HashMap<>();
+    private PDType1Font selectedFont = defaultFont;
 
     /**
      * Creates a configuration seeded with Courier fonts and size 12.
@@ -38,6 +39,7 @@ public class FontSettings {
         this.boldFont = other.boldFont;
         this.italicFont = other.italicFont;
         this.boldItalicFont = other.boldItalicFont;
+        this.selectedFont = other.selectedFont != null ? other.selectedFont : defaultFont;
         loadFontMap();
     }
 
@@ -143,5 +145,14 @@ public class FontSettings {
      */
     public void setBoldItalicFont(PDType1Font boldItalicFont) {
         this.boldItalicFont = boldItalicFont;
+    }
+
+
+    public PDType1Font getSelectedFont() {
+        return selectedFont;
+    }
+
+    public void setSelectedFont(PDType1Font selectedFont) {
+        this.selectedFont = selectedFont;
     }
 }

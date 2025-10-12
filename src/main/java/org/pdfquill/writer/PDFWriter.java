@@ -1,21 +1,28 @@
-package org.pdfquill;
+package org.pdfquill.writer;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.pdfquill.formatter.ContentFormatter;
+import org.pdfquill.settings.font.FontUtils;
 import org.pdfquill.settings.font.FontType;
-import org.pdfquill.settings.page.PageLayout;
+import org.pdfquill.settings.PageLayout;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 
 /**
  * Manages the PDF document lifecycle, providing a cursor-like interface for writing content.
@@ -45,6 +52,18 @@ public class PDFWriter {
         this.contentStream = null;
     }
 
+    private void incrementWrittenHeight() {
+        this.writtenHeight += this.pageLayout.getLineHeight();
+    }
+
+    private void incrementWrittenHeight(float height) {
+        this.writtenHeight += height;
+    }
+
+    private float getCurrentY() {
+        return this.pageLayout.getStartY() - this.writtenHeight;
+    }
+
     /**
      * Writes a single line of text to the document, automatically handling pagination.
      *
@@ -52,10 +71,10 @@ public class PDFWriter {
      * @throws IOException if writing to the content stream fails.
      */
     public void writeLine(String line, FontType fontType) throws IOException {
-        addNewPageIfNeeded();
-        float lineY = this.pageLayout.getStartY() - this.writtenHeight;
-        addTextLine(line, this.pageLayout.getStartX(), lineY, fontType);
         incrementWrittenHeight();
+        addNewPageIfNeeded();
+        float lineY = getCurrentY();
+        addTextLine(line, this.pageLayout.getStartX(), lineY, fontType);
     }
 
     /**
@@ -69,8 +88,8 @@ public class PDFWriter {
     public void writeImage(BufferedImage image, float imageWidth, float imageHeight) throws IOException {
         PDImageXObject pdImage = LosslessFactory.createFromImage(this.document, image);
         addNewPageIfNeeded(imageHeight);
-
-        float lineY = (this.pageLayout.getStartY() - this.writtenHeight) - imageHeight;
+        incrementWrittenHeight();
+        float lineY = (getCurrentY()) - imageHeight;
         float imageStartX = this.pageLayout.getStartX() + (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
         contentStream.drawImage(pdImage, imageStartX, lineY, imageWidth, imageHeight);
@@ -88,7 +107,7 @@ public class PDFWriter {
      * @throws IOException when drawing the signal fails
      */
     public void writeCutSignal() throws IOException {
-        float lineY = this.pageLayout.getStartY() - this.writtenHeight;
+        float lineY = getCurrentY();
 
         contentStream.beginText();
         contentStream.setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
@@ -96,7 +115,7 @@ public class PDFWriter {
         contentStream.showText(createFullWidthString(" "));
         contentStream.endText();
 
-        incrementWrittenHeight(this.pageLayout.getLineHeight() * 2);
+        incrementWrittenHeight((this.pageLayout.getLineHeight() * 2) + this.pageLayout.getLineHeight());
 
         if (this.pageLayout.isNonThermalPaper()) {
             addNewPage();
@@ -114,10 +133,14 @@ public class PDFWriter {
     }
 
     private void addTextLine(String text, float x, float y, FontType fontType) throws IOException {
+        addTextLine(text, x, y, this.pageLayout.getFontSettings().getFontByFontType(fontType),
+                this.pageLayout.getFontSettings().getFontSize());
+    }
+
+    private void addTextLine(String text, float x, float y, PDType1Font font, int fontSize) throws IOException {
         try {
             contentStream.beginText();
-            contentStream.setFont(this.pageLayout.getFontSettings().getFontByFontType(fontType),
-                    this.pageLayout.getFontSettings().getFontSize());
+            contentStream.setFont(font, fontSize);
             contentStream.newLineAtOffset(x, y);
             contentStream.showText(text);
             contentStream.endText();
@@ -126,12 +149,73 @@ public class PDFWriter {
         }
     }
 
-    private void incrementWrittenHeight() {
-        this.writtenHeight += this.pageLayout.getLineHeight();
-    }
+    //TODO: This method is using addTextLine which opens and closes text everytime, that's not right
+    //TODO: change to open only once and update using newLineAtOffset passing Y as 0 if we need to stay at the same line
+    public void writeFromTextLines(TextBuilder textBuilder) throws IOException {
+        if (textBuilder == null || textBuilder.getTextList().isEmpty()) {
+            return;
+        }
 
-    private void incrementWrittenHeight(float height) {
-        this.writtenHeight += height + this.pageLayout.getLineHeight();
+        Deque<Text> pendingTexts = new ArrayDeque<>(textBuilder.getTextList());
+        List<TextLinePlan> lines = new ArrayList<>();
+        LineAccumulator currentLine = new LineAccumulator(this.pageLayout.getStartX());
+        float maxLineWidth = this.pageLayout.getMaxLineWidth();
+
+        while (!pendingTexts.isEmpty()) {
+            Text current = pendingTexts.pollFirst();
+            if (current == null) {
+                continue;
+            }
+
+            String rawText = current.getText();
+            if (rawText == null || rawText.isEmpty()) {
+                continue;
+            }
+
+            PDType1Font font = current.getFontSetting().getSelectedFont();
+            int fontSize = current.getFontSetting().getFontSize();
+            float availableWidth = maxLineWidth - currentLine.getWidth();
+            float textWidth = FontUtils.getTextWidth(rawText, font, fontSize);
+
+            if (textWidth <= availableWidth) {
+                Text chunk = new Text(rawText, current.getFontSetting());
+                currentLine.addChunk(chunk, textWidth, fontSize);
+                continue;
+            }
+
+            if (availableWidth <= 0 || (!currentLine.isEmpty() && FontUtils.getTextWidth(rawText.substring(0, 1), font, fontSize) > availableWidth)) {
+                currentLine.flushInto(lines);
+                pendingTexts.addFirst(current);
+                continue;
+            }
+
+            SplitParts split = ContentFormatter.splitText(current, availableWidth);
+            if (split.head() != null && !split.head().isEmpty()) {
+                float headWidth = FontUtils.getTextWidth(split.head(), font, fontSize);
+                Text chunk = new Text(split.head(), current.getFontSetting());
+                currentLine.addChunk(chunk, headWidth, fontSize);
+            }
+
+            if (split.tail() == null || split.tail().isEmpty()) {
+                continue;
+            }
+
+            currentLine.flushInto(lines);
+            pendingTexts.addFirst(new Text(split.tail(), current.getFontSetting()));
+        }
+
+        currentLine.flushInto(lines);
+
+        for (TextLinePlan textLinePlan : lines) {
+            float lineHeight = textLinePlan.getMaxFontSize() * pageLayout.getLineSpacing();
+            addNewPageIfNeeded(lineHeight);
+            float y = getCurrentY() - lineHeight;
+            for (Text line : textLinePlan.getTextList()) {
+                addTextLine(line.getText(), line.getX(), y,
+                        line.getFontSetting().getSelectedFont(), line.getFontSetting().getFontSize());
+            }
+            incrementWrittenHeight(lineHeight);
+        }
     }
 
     private boolean addNewPageIfNeeded() throws IOException {

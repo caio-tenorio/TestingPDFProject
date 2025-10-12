@@ -29,7 +29,9 @@ import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
 
 FontSettings fontSettings = new FontSettings();
-fontSettings.setFontSize(10);
+fontSettings.
+
+setFontSize(10);
 
 PDFQuill quill = PDFQuill.builder()
         .withPaperType(PaperType.THERMAL_56MM)
@@ -37,10 +39,18 @@ PDFQuill quill = PDFQuill.builder()
         .preserveSpaces(true)
         .build();
 
-quill.print("Sample Store");
-quill.print("Full address line");
-quill.printBarcode("123456789012", BarcodeType.CODE128);
-quill.cutSignal();
+quill.
+
+print("Sample Store");
+quill.
+
+print("Full address line");
+quill.
+
+printBarcode("123456789012",BarcodeType.CODE128);
+quill.
+
+cutSignal();
 
 String pdfBase64 = quill.getBase64PDFBytes();
 ```
@@ -51,11 +61,6 @@ String pdfBase64 = quill.getBase64PDFBytes();
 - **Permissions**: enable or disable printing, editing, and content extraction with `withPermissionSettings` or `configurePermissionSettings`.
 - **Whitespace**: call `preserveSpaces(true)` to keep leading spaces, which is handy for manual alignment in receipts.
 - **Images**: `printImage` accepts a `ByteArrayInputStream`; convert files using `Files.readAllBytes(path)`.
-
-## Development Hints
-- Execute `mvn -q exec:java -Dexec.mainClass="org.pdfquill.Main"` to run the sample located at `src/main/java/org/pdfquill/Main.java`.
-- Use `MeasurementUtils.mmToPt(mm)` to convert millimeters to points when adjusting elements manually.
-- `PrinterException` wraps PDFBox and ZXing errors; handle it appropriately in your application.
 
 ## Dependencies
 - [Apache PDFBox](https://pdfbox.apache.org/) for PDF rendering
