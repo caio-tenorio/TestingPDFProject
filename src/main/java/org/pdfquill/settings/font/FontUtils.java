@@ -1,7 +1,6 @@
-package org.pdfquill.settings;
+package org.pdfquill.settings.font;
 
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.pdfquill.settings.font.FontType;
 
 import java.io.IOException;
 

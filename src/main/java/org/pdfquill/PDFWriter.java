@@ -9,9 +9,9 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.pdfquill.settings.FontUtils;
+import org.pdfquill.settings.font.FontUtils;
 import org.pdfquill.settings.font.FontType;
-import org.pdfquill.settings.page.PageLayout;
+import org.pdfquill.settings.PageLayout;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -53,7 +53,7 @@ public class PDFWriter {
     }
 
     private void incrementWrittenHeight(float height) {
-        this.writtenHeight += height + this.pageLayout.getLineHeight();
+        this.writtenHeight += height;
     }
 
     private float getCurrentY() {
@@ -89,7 +89,7 @@ public class PDFWriter {
         float imageStartX = this.pageLayout.getStartX() + (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
         contentStream.drawImage(pdImage, imageStartX, lineY, imageWidth, imageHeight);
-        incrementWrittenHeight(imageHeight);
+        incrementWrittenHeight(imageHeight + this.pageLayout.getLineHeight());
     }
 
     public void writeImage(ByteArrayInputStream imgBytes, int width, int height) throws IOException {
@@ -111,7 +111,7 @@ public class PDFWriter {
         contentStream.showText(createFullWidthString(" "));
         contentStream.endText();
 
-        incrementWrittenHeight(this.pageLayout.getLineHeight() * 2);
+        incrementWrittenHeight((this.pageLayout.getLineHeight() * 2) + this.pageLayout.getLineHeight());
 
         if (this.pageLayout.isNonThermalPaper()) {
             addNewPage();
@@ -129,10 +129,14 @@ public class PDFWriter {
     }
 
     private void addTextLine(String text, float x, float y, FontType fontType) throws IOException {
+        addTextLine(text, x, y, this.pageLayout.getFontSettings().getFontByFontType(fontType),
+                this.pageLayout.getFontSettings().getFontSize());
+    }
+
+    private void addTextLine(String text, float x, float y, PDType1Font font, int fontSize) throws IOException {
         try {
             contentStream.beginText();
-            contentStream.setFont(this.pageLayout.getFontSettings().getFontByFontType(fontType),
-                    this.pageLayout.getFontSettings().getFontSize());
+            contentStream.setFont(font, fontSize);
             contentStream.newLineAtOffset(x, y);
             contentStream.showText(text);
             contentStream.endText();
@@ -141,31 +145,38 @@ public class PDFWriter {
         }
     }
 
-    private void addText(String text, float x, float y, PDType1Font font, int fontSize) throws IOException {
-        contentStream.setFont(font, fontSize);
-        contentStream.newLineAtOffset(x, y);
-        contentStream.showText(text);
-    }
+    //TODO: This method is using addTextLine which opens and closes text everytime, that's not right
+    //TODO: change to open only once and update using newLineAtOffset passing Y as 0 if we need to stay at the same line
+    public void writeFromTextLines(TextBuilder textBuilder) throws IOException {
+        List<Text> textList = textBuilder.getTextList();
 
-    private void writeFromTextLines(List<Text> textList) throws IOException {
         float x = this.pageLayout.getStartX();
-        beginText();
-        for (Text text : textList) {
+        float textWidth = 0;
+        int idx = 0;
+        while (idx < textList.size()) {
+            Text text = textList.get(idx);
+
             PDType1Font font = text.getFontSetting().getSelectedFont();
             int fontSize = text.getFontSetting().getFontSize();
-            float textWidth = FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
+            textWidth = textWidth + FontUtils.getTextWidth(text.getText(), font, text.getFontSetting().getFontSize());
 
             if (textWidth <= this.pageLayout.getMaxLineWidth()) {
+                addTextLine(text.getText(), x, getCurrentY(), font,  fontSize);
                 x = x + textWidth;
-                addText(text.getText(), x, writtenHeight, font,  fontSize);
             } else {
+                x = this.pageLayout.getStartX();
+                textWidth = 0;
                 // TODO: quebrar texto até ele
                 float sizeToFillLine = this.pageLayout.getMaxLineWidth() - x;
-
-
+                List<String> stringList = ContentFormatter.formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont(), // TODO: optimize this, i could build textlines inside the same method
+                        text.getFontSetting().getFontSize(), sizeToFillLine, false);
+                List<Text> textLines = ContentFormatter.createTextsFromSource(text, stringList);
+                textList.addAll(idx +1, textLines);
+                incrementWrittenHeight(textBuilder.getMaxFontSize() * this.pageLayout.getLineSpacing()); // TODO: This is wrong, i need to get the max font size from the Texts that where on the same line, not all of them
             }
+            idx =  idx + 1;
         }
-        endText();
+        incrementWrittenHeight(textBuilder.getMaxFontSize() * this.pageLayout.getLineSpacing()); // TODO: Get line spacing from the right place
     }
 
     private void beginText() throws IOException {

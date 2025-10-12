@@ -1,4 +1,4 @@
-package org.pdfquill.settings.page;
+package org.pdfquill.settings;
 
 import org.pdfquill.paper.PaperType;
 import org.pdfquill.paper.PaperUtils;
@@ -246,5 +246,9 @@ public class PageLayout {
      */
     public float getPageWritingHeight() {
         return pageWritingHeight;
+    }
+
+    public float getLineSpacing() {
+        return lineSpacing;
     }
 }

@@ -2,19 +2,17 @@ package org.pdfquill;
 
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
-import org.pdfquill.paper.PaperType;
-import org.pdfquill.settings.font.FontType;
-import org.pdfquill.settings.font.FontSettings;
-import org.pdfquill.settings.page.PageLayout;
-import org.pdfquill.settings.permissions.PermissionSettings;
 import org.pdfquill.measurements.MeasurementUtils;
-
+import org.pdfquill.paper.PaperType;
+import org.pdfquill.settings.font.FontSettings;
+import org.pdfquill.settings.font.FontType;
+import org.pdfquill.settings.PageLayout;
+import org.pdfquill.settings.permissions.PermissionSettings;
 
 import javax.xml.bind.DatatypeConverter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -25,7 +23,6 @@ public class PDFQuill {
     private final PageLayout pageLayout;
     private final PermissionSettings permissionSettings;
     private final PDFWriter pdfWriter;
-    private final ContentFormatter contentFormatter;
     private byte[] pdf;
 
     /**
@@ -66,7 +63,6 @@ public class PDFQuill {
         }
 
         this.pdfWriter = new PDFWriter(this.pageLayout);
-        this.contentFormatter = new ContentFormatter(this.pageLayout, builder.preserveSpaces);
     }
 
     /**
@@ -153,20 +149,21 @@ public class PDFQuill {
 
     private void printLines(String text, FontType fontType) throws IOException {
         PDType1Font font = this.pageLayout.getFontSettings().getFontByFontType(fontType);
-        List<String> lines = this.contentFormatter.formatTextToLines(text, font);
+        int fontSize = this.pageLayout.getFontSettings().getFontSize();
+        float maxWidth = this.pageLayout.getMaxLineWidth();
+
+        List<String> lines = ContentFormatter.formatTextToLines(text, font, fontSize, maxWidth, false);
         for (String line : lines) {
             this.pdfWriter.writeLine(line, fontType);
         }
     }
 
-    private void writeFromTextBuilder(TextBuilder textBuilder) throws IOException {
-        if (textBuilder != null) {
+    public void writeFromTextBuilder(TextBuilder textBuilder) throws IOException {
+        if (textBuilder == null) {
             return;
         }
 
-        List<Text> lines = this.contentFormatter.formatTextBuilder(textBuilder);
-
-        this.pdfWriter.writeFromTextLines(lines);
+        this.pdfWriter.writeFromTextLines(textBuilder);
     }
 
     /**
@@ -219,7 +216,7 @@ public class PDFQuill {
      */
     public PDFQuill printBarcode(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
         try {
-            BufferedImage image = this.contentFormatter.createBarcodeImage(code, barcodeType, height, width);
+            BufferedImage image = ContentFormatter.createBarcodeImage(code, barcodeType, height, width);
 
             float imageHeight = BarcodeType.QRCODE.equals(barcodeType) ? MeasurementUtils.mmToPt(48f) : MeasurementUtils.mmToPt(12f);
             float imageWidth = BarcodeType.QRCODE.equals(barcodeType) ? MeasurementUtils.mmToPt(48f) : MeasurementUtils.mmToPt(80f);

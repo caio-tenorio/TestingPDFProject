@@ -3,7 +3,7 @@ package org.pdfquill;
 import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
 import org.pdfquill.settings.font.FontType;
-import org.pdfquill.settings.page.PageLayout;
+import org.pdfquill.settings.PageLayout;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
 import javax.xml.bind.DatatypeConverter;
@@ -58,6 +58,19 @@ public class Main {
         resource.printImage(imgByteStream);
         resource.printLine("Lorem ipsum dolor sit amet,");
         resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
+        resource.printLine("ANTES DO WRITE FROM TEXT BUIDLER");
+
+        TextBuilder textBuilder = new TextBuilder();
+        textBuilder.addText(new Text("MEU TEXTO AQUI DO NEGóCIO aklsjdkajsdkj", new FontSettings()))
+                .addText(new Text("Meu segundo texto.", new FontSettings()))
+                .addText(new Text(" Terceiro texto pra a gente ver aqui como fica", new FontSettings()));
+
+        resource.writeFromTextBuilder(textBuilder);
+
         resource.printLine("consectetur adipiscing elit,");
         resource.printLine("consectetur adipiscing elit,");
         resource.printLine("Excepteur sint occaecat cupidatat non proident,");

@@ -29,7 +29,9 @@ import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
 
 FontSettings fontSettings = new FontSettings();
-fontSettings.setFontSize(10);
+fontSettings.
+
+setFontSize(10);
 
 PDFQuill quill = PDFQuill.builder()
         .withPaperType(PaperType.THERMAL_56MM)
@@ -37,10 +39,18 @@ PDFQuill quill = PDFQuill.builder()
         .preserveSpaces(true)
         .build();
 
-quill.print("Sample Store");
-quill.print("Full address line");
-quill.printBarcode("123456789012", BarcodeType.CODE128);
-quill.cutSignal();
+quill.
+
+print("Sample Store");
+quill.
+
+print("Full address line");
+quill.
+
+printBarcode("123456789012",BarcodeType.CODE128);
+quill.
+
+cutSignal();
 
 String pdfBase64 = quill.getBase64PDFBytes();
 ```

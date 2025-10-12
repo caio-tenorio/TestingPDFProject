@@ -8,9 +8,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.barcode.BarcodeUtils;
-import org.pdfquill.settings.FontUtils;
-import org.pdfquill.settings.font.FontType;
-import org.pdfquill.settings.page.PageLayout;
+import org.pdfquill.settings.font.FontUtils;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -24,20 +22,6 @@ import java.util.Map;
  * Processes and formats content, like text and barcodes, preparing it for rendering.
  */
 public class ContentFormatter {
-    private final PageLayout pageLayout;
-    private final boolean preserveSpaces;
-
-    /**
-     * Creates a formatter tied to a specific layout.
-     *
-     * @param pageLayout     layout containing page metrics
-     * @param preserveSpaces when {@code true}, leading spaces are preserved during wrapping
-     */
-    public ContentFormatter(PageLayout pageLayout, boolean preserveSpaces) {
-        this.pageLayout = pageLayout;
-        this.preserveSpaces = preserveSpaces;
-    }
-
     /**
      * Wraps a block of text into multiple lines based on the current layout.
      *
@@ -45,10 +29,11 @@ public class ContentFormatter {
      * @return A list of strings, where each entry is a line.
      * @throws IOException if font metrics cannot be read
      */
-    public List<String> formatTextToLines(String text, PDType1Font font) throws IOException {
+    public static List<String> formatTextToLines(String text, PDType1Font font, int fontSize,
+                                          float maxWidth, boolean preserveSpaces) throws IOException {
         List<String> lines = new ArrayList<>();
 
-        if (getTextWidth(text, font) <= this.pageLayout.getMaxLineWidth()) {
+        if (getTextWidth(text, font, fontSize) <= maxWidth) {
             lines.add(text);
             return lines;
         }
@@ -56,7 +41,7 @@ public class ContentFormatter {
         final int n = text.length();
         float[] widths = new float[n];
         for (int i = 0; i < n; i++) {
-            widths[i] = getTextWidth(text.substring(i, i + 1),  font);
+            widths[i] = getTextWidth(text.substring(i, i + 1),  font, fontSize);
         }
 
         float[] prefix = new float[n + 1];
@@ -67,7 +52,7 @@ public class ContentFormatter {
         int start = 0;
 
         while (start < n) {
-            if (!this.preserveSpaces)
+            if (!preserveSpaces)
                 while (start < n && Character.isWhitespace(text.charAt(start))) start++;
 
             if (start >= n) break;
@@ -76,7 +61,7 @@ public class ContentFormatter {
             while (lo <= hi) {
                 int mid = (lo + hi) >>> 1;
                 float w = prefix[mid] - prefix[start];
-                if (w <= this.pageLayout.getMaxLineWidth()) {
+                if (w <= maxWidth) {
                     best = mid;
                     lo = mid + 1;
                 } else {
@@ -105,12 +90,13 @@ public class ContentFormatter {
         return lines;
     }
 
-    public List<Text> formatTextBuilder(TextBuilder textBuilder) throws IOException {
+    public static List<Text> formatTextBuilder(TextBuilder textBuilder, float maxWidth) throws IOException {
         List<Text> textList = textBuilder.getTextList();
         List<Text> resultTextList = new ArrayList<>();
 
         for (Text text : textList) {
-            List<String> lines = formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont());
+            List<String> lines = formatTextToLines(text.getText(), text.getFontSetting().getSelectedFont(),
+                    text.getFontSetting().getFontSize(), maxWidth, false);
             if (lines.size() > 1) {
                 List<Text> newLines = createTextsFromSource(text, lines);
                 resultTextList.addAll(newLines);
@@ -122,10 +108,10 @@ public class ContentFormatter {
         return resultTextList;
     }
 
-    private List<Text> createTextsFromSource(Text text, List<String> lines) throws IOException {
+    public static List<Text> createTextsFromSource(Text text, List<String> lines) throws IOException {
         List<Text> textList = new ArrayList<>();
         for (String line : lines) {
-            Text tempText = new Text(text.getFontSetting(), line);
+            Text tempText = new Text(line, text.getFontSetting());
             textList.add(tempText);
         }
 
@@ -142,7 +128,7 @@ public class ContentFormatter {
      * @return A {@link BufferedImage} containing the barcode.
      * @throws PrinterException when barcode generation fails
      */
-    public BufferedImage createBarcodeImage(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
+    public static BufferedImage createBarcodeImage(String code, BarcodeType barcodeType, int height, int width) throws PrinterException {
         try {
             if (height == 0) height = 350;
             if (width == 0) width = 350;
@@ -164,7 +150,7 @@ public class ContentFormatter {
         }
     }
 
-    private void createGraphics(BufferedImage image, BitMatrix byteMatrix, int width, int height) {
+    private static void createGraphics(BufferedImage image, BitMatrix byteMatrix, int width, int height) {
         Graphics2D graphics = image.createGraphics();
         graphics.setColor(Color.WHITE);
         graphics.fillRect(0, 0, width, height);
@@ -180,7 +166,7 @@ public class ContentFormatter {
         graphics.dispose();
     }
 
-    private float getTextWidth(String text, PDType1Font font) throws IOException {
-        return FontUtils.getTextWidth(text, font, this.pageLayout.getFontSettings().getFontSize());
+    private static float getTextWidth(String text, PDType1Font font, int fontSize) throws IOException {
+        return FontUtils.getTextWidth(text, font, fontSize);
     }
 }
