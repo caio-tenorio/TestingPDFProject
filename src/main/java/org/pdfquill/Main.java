@@ -27,40 +27,40 @@ public class Main {
                 .withPageLayout(pageLayout)
                 .build();
 
-//        resource.printLine("   KJaklsjdklasjdkla")
-//                .printLine("consectetur adipiscing elit,")
-//                .printLine("consectetur adipiscing elit,");
-//        resource.printLine("consectetur adipiscing elit,");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident");
-//        resource.printLine("               Lorem ipsum dolor sit amet,             ");
-//        resource.printLine("    Lorem ipsum dolor sit amet,");
-//        resource.printLine("consectetur adipiscing elit,");
-//        FontSettings fontSettings2 = new FontSettings();
-//        fontSettings2.setFontSize(16);
-//        fontSettings2.setDefaultFont(PDType1Font.TIMES_ROMAN);
-//        fontSettings2.setBoldFont(PDType1Font.TIMES_BOLD);
-//
-//        resource.updateFontSettings(fontSettings2);
-//        resource.printLine("consectetur adipiscing elit,");
-//        resource.printLine("consectetur adipiscing elit,");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident");
-//        resource.printLine("               Lorem ipsum dolor sit amet,             ", FontType.BOLD);
-//
-//
-//        byte[] imgBytes = DatatypeConverter.parseBase64Binary(image64);
-//        ByteArrayInputStream imgByteStream = new ByteArrayInputStream(imgBytes);
-//        resource.printImage(imgByteStream);
-//        resource.printLine("Lorem ipsum dolor sit amet,");
-//        resource.printLine("consectetur adipiscing elit,");
-//        resource.printLine("consectetur adipiscing elit,");
-//        resource.printLine("consectetur adipiscing elit,");
-//        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
+        resource.printLine("   KJaklsjdklasjdkla")
+                .printLine("consectetur adipiscing elit,")
+                .printLine("consectetur adipiscing elit,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident");
+        resource.printLine("               Lorem ipsum dolor sit amet,             ");
+        resource.printLine("    Lorem ipsum dolor sit amet,");
+        resource.printLine("consectetur adipiscing elit,");
+        FontSettings fontSettings2 = new FontSettings();
+        fontSettings2.setFontSize(16);
+        fontSettings2.setDefaultFont(PDType1Font.TIMES_ROMAN);
+        fontSettings2.setBoldFont(PDType1Font.TIMES_BOLD);
+
+        resource.updateFontSettings(fontSettings2);
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident, ANTES DO CÓDIGO DE BARRAS");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident");
+        resource.printLine("               Lorem ipsum dolor sit amet,             ", FontType.BOLD);
+
+
+        byte[] imgBytes = DatatypeConverter.parseBase64Binary(image64);
+        ByteArrayInputStream imgByteStream = new ByteArrayInputStream(imgBytes);
+        resource.printImage(imgByteStream);
+        resource.printLine("Lorem ipsum dolor sit amet,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("consectetur adipiscing elit,");
+        resource.printLine("Excepteur sint occaecat cupidatat non proident,");
         resource.printLine("Excepteur sint occaecat cupidatat non proident asmdhaksjhdkashsdajshdajkshdajkshdjk ahsdjkahsjkdhajksdhjashdjkahsjdkahsjdhajksd");
         resource.printLine("ANTES DO WRITE FROM TEXT BUIDLER");
 

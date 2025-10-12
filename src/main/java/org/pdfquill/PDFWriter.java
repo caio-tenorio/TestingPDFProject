@@ -176,7 +176,6 @@ public class PDFWriter {
                 } else {
                     x = this.pageLayout.getStartX();
                     textWidth = 0;
-                    incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing());
                     maxFontSize = 0;
                     planIdx = planIdx + 1;
                     textPlanList.add(new TextLinePlan());
@@ -190,6 +189,7 @@ public class PDFWriter {
                 textWidth = textWidth + currentTextWidth;
                 text.setX(x);
                 textPlanList.get(planIdx).setY(y);
+                textPlanList.get(planIdx).setMaxFontSize(maxFontSize);
                 textPlanList.get(planIdx).getTextList().add(text);
                 x = x + currentTextWidth;
                 idx = idx + 1;
@@ -197,11 +197,14 @@ public class PDFWriter {
         }
 
         for (TextLinePlan textLinePlan: textPlanList) {
+            float lineHeigh = textLinePlan.getMaxFontSize() * pageLayout.getLineSpacing();
+            addNewPageIfNeeded(lineHeigh);
+            float y = getCurrentY() - lineHeigh;
             for (Text line : textLinePlan.getTextList()) {
-                addTextLine(line.getText(), line.getX(), textLinePlan.getY(), line.getFontSetting().getSelectedFont(),  line.getFontSetting().getFontSize());
+                addTextLine(line.getText(), line.getX(), y, line.getFontSetting().getSelectedFont(),  line.getFontSetting().getFontSize());
             }
+            incrementWrittenHeight(lineHeigh);
         }
-        incrementWrittenHeight(maxFontSize * this.pageLayout.getLineSpacing());
     }
 
     private void beginText() throws IOException {
