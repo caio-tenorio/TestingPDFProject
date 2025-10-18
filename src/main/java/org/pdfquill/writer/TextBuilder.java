@@ -1,5 +1,7 @@
 package org.pdfquill.writer;
 
+import org.pdfquill.settings.font.FontSettings;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +24,18 @@ public class TextBuilder {
         if (text.getFontSetting().getFontSize() > maxFontSize) {
             maxFontSize = text.getFontSetting().getFontSize();
         }
+        return this;
+    }
+
+    public TextBuilder addText(String strText) {
+        Text text = new Text(strText, new FontSettings());
+        addText(text);
+        return this;
+    }
+
+    public TextBuilder addText(String strText, FontSettings fontSettings) {
+        Text text = new Text(strText, fontSettings);
+        addText(text);
         return this;
     }
 

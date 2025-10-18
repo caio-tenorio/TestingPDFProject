@@ -36,7 +36,7 @@ public class PDFWriter {
 
     private PDPage currentPage;
     private PDPageContentStream contentStream;
-    private float writtenHeight = 0;
+    private final TextCursor textCursor;
 
     /**
      * Creates a writer responsible for generating a PDF according to the supplied layout.
@@ -50,18 +50,25 @@ public class PDFWriter {
         this.pageSize = new PDRectangle(pageLayout.getPageWidth(), pageLayout.getPageHeight());
         this.currentPage = null;
         this.contentStream = null;
+        this.textCursor = new TextCursor();
     }
 
     private void incrementWrittenHeight() {
-        this.writtenHeight += this.pageLayout.getLineHeight();
+        this.textCursor.advance(this.pageLayout.getLineHeight());
     }
 
     private void incrementWrittenHeight(float height) {
-        this.writtenHeight += height;
+        this.textCursor.advance(height);
     }
 
     private float getCurrentY() {
-        return this.pageLayout.getStartY() - this.writtenHeight;
+        return this.textCursor.getCurrentY();
+    }
+
+    private void ensurePage() throws IOException {
+        if (document.getNumberOfPages() == 0) {
+            addNewPage();
+        }
     }
 
     /**
@@ -92,6 +99,7 @@ public class PDFWriter {
         float lineY = (getCurrentY()) - imageHeight;
         float imageStartX = this.pageLayout.getStartX() + (this.pageLayout.getMaxLineWidth() - imageWidth) / 2;
 
+        this.textCursor.closeTextObject();
         contentStream.drawImage(pdImage, imageStartX, lineY, imageWidth, imageHeight);
         incrementWrittenHeight(imageHeight);
     }
@@ -109,11 +117,9 @@ public class PDFWriter {
     public void writeCutSignal() throws IOException {
         float lineY = getCurrentY();
 
-        contentStream.beginText();
-        contentStream.setFont(this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
-        contentStream.newLineAtOffset(this.pageLayout.getStartX(), lineY - this.pageLayout.getLineHeight() * 2);
-        contentStream.showText(createFullWidthString(" "));
-        contentStream.endText();
+        this.textCursor.showTextAt(createFullWidthString(" "), this.pageLayout.getStartX(),
+                lineY - this.pageLayout.getLineHeight() * 2,
+                this.pageLayout.getFontSettings().getDefaultFont(), this.pageLayout.getFontSettings().getFontSize());
 
         incrementWrittenHeight((this.pageLayout.getLineHeight() * 2) + this.pageLayout.getLineHeight());
 
@@ -139,13 +145,9 @@ public class PDFWriter {
 
     private void addTextLine(String text, float x, float y, PDType1Font font, int fontSize) throws IOException {
         try {
-            contentStream.beginText();
-            contentStream.setFont(font, fontSize);
-            contentStream.newLineAtOffset(x, y);
-            contentStream.showText(text);
-            contentStream.endText();
+            this.textCursor.showTextAt(text, x, y, font, fontSize);
         } catch (IllegalArgumentException e) {
-            contentStream.endText();
+            this.textCursor.closeTextObject();
         }
     }
 
@@ -218,6 +220,22 @@ public class PDFWriter {
         }
     }
 
+    public void skipLine() throws IOException {
+        skipLines(1);
+    }
+
+    public void skipLines(int lineCount) throws IOException {
+        if (lineCount <= 0) {
+            return;
+        }
+
+        ensurePage();
+        for (int i = 0; i < lineCount; i++) {
+            incrementWrittenHeight();
+            addNewPageIfNeeded();
+        }
+    }
+
     private boolean addNewPageIfNeeded() throws IOException {
         if (document.getNumberOfPages() == 0 || willNewContentExceedPageWritingHeight(this.pageLayout.getLineHeight())) {
             addNewPage();
@@ -235,21 +253,23 @@ public class PDFWriter {
     }
 
     private boolean willNewContentExceedPageWritingHeight(float height) {
-        return this.writtenHeight + height > this.pageLayout.getPageWritingHeight();
+        return this.textCursor.getWrittenHeight() + height > this.pageLayout.getPageWritingHeight();
     }
 
     private void addNewPage() throws IOException {
         if (this.contentStream != null) {
+            this.textCursor.closeTextObject();
             this.contentStream.close();
         }
         this.currentPage = new PDPage(this.pageSize);
         this.document.addPage(this.currentPage);
         this.contentStream = new PDPageContentStream(this.document, this.currentPage);
-        this.writtenHeight = 0;
+        this.textCursor.bindToContentStream(this.contentStream, this.pageLayout.getStartX(), this.pageLayout.getStartY());
     }
 
     public byte[] saveAndGetBytes() throws IOException {
         if (this.contentStream != null) {
+            this.textCursor.closeTextObject();
             this.contentStream.close();
         }
         if (!isClosed()) {
@@ -270,8 +290,8 @@ public class PDFWriter {
             if (this.pageLayout.isThermalPaper()) {
                 PDRectangle mediaBox = page.getMediaBox();
                 PDRectangle cropBox = new PDRectangle(mediaBox.getLowerLeftX(), this.pageLayout.getPageHeight()
-                        - this.writtenHeight - lineHeight,
-                        mediaBox.getUpperRightX() - 3, this.writtenHeight + lineHeight);
+                        - this.textCursor.getWrittenHeight() - lineHeight,
+                        mediaBox.getUpperRightX() - 3, this.textCursor.getWrittenHeight() + lineHeight);
 
                 page.setCropBox(cropBox);
             } else {
@@ -300,6 +320,7 @@ public class PDFWriter {
 
     public void close() throws IOException {
         if (this.contentStream != null) {
+            this.textCursor.closeTextObject();
             this.contentStream.close();
         }
         if (!isClosed()) {
