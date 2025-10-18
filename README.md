@@ -26,7 +26,7 @@ The compiled artifact will be available at `target/pdf-quill-1.0-SNAPSHOT.jar`. 
 import java.io.IOException;
 
 import org.pdfquill.PDFQuill;
-import org.pdfquill.PrinterException;
+import org.pdfquill.exceptions.PrinterException;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
@@ -47,6 +47,7 @@ try {
     quill.cutSignal();
 
     String pdfBase64 = quill.getBase64PDFBytes();
+    // send pdfBase64 to printer, API, etc.
 } catch (PrinterException | IOException e) {
     // handle failure (retry, log, etc.)
 }
@@ -91,4 +92,3 @@ try {
 - [Apache PDFBox](https://pdfbox.apache.org/) for PDF rendering
 - [ZXing](https://github.com/zxing/zxing) for barcode and QR Code generation
 - `javax.xml.bind` for Base64 encoding
-

@@ -1,4 +1,4 @@
-package org.pdfquill;
+package org.pdfquill.exceptions;
 
 /**
  * Runtime exception that signals unrecoverable PDF creation issues.

@@ -6,7 +6,7 @@ import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.pdfquill.PrinterException;
+import org.pdfquill.exceptions.PrinterException;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.barcode.BarcodeUtils;
 import org.pdfquill.settings.font.FontUtils;
