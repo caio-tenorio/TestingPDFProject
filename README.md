@@ -32,9 +32,7 @@ import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
 
 FontSettings fontSettings = new FontSettings();
-fontSettings.
-
-setFontSize(10);
+fontSettings.setFontSize(10);
 
 PDFQuill quill = PDFQuill.builder()
         .withPaperType(PaperType.THERMAL_56MM)
@@ -42,25 +40,17 @@ PDFQuill quill = PDFQuill.builder()
         .preserveSpaces(true)
         .build();
 
-try{
-        quill.
+try {
+    quill.printLine("Sample Store");
+    quill.printLine("Full address line");
+    quill.printBarcode("123456789012", BarcodeType.CODE128);
+    quill.cutSignal();
 
-printLine("Sample Store");
-    quill.
-
-printLine("Full address line");
-    quill.
-
-printBarcode("123456789012",BarcodeType.CODE128);
-    quill.
-
-cutSignal();
-
-String pdfBase64 = quill.getBase64PDFBytes();
-}catch(PrinterException |
-IOException e){
-        // handle failure (retry, log, etc.)
-        }
+    String pdfBase64 = quill.getBase64PDFBytes();
+    // send pdfBase64 to printer, API, etc.
+} catch (PrinterException | IOException e) {
+    // handle failure (retry, log, etc.)
+}
 ```
 
 ## Rich Text Blocks
@@ -102,4 +92,3 @@ try {
 - [Apache PDFBox](https://pdfbox.apache.org/) for PDF rendering
 - [ZXing](https://github.com/zxing/zxing) for barcode and QR Code generation
 - `javax.xml.bind` for Base64 encoding
-
