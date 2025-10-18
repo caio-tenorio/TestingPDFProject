@@ -2,6 +2,7 @@ package org.pdfquill;
 
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.pdfquill.barcode.BarcodeType;
+import org.pdfquill.exceptions.PrinterException;
 import org.pdfquill.formatter.ContentFormatter;
 import org.pdfquill.measurements.MeasurementUtils;
 import org.pdfquill.paper.PaperType;

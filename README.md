@@ -26,13 +26,15 @@ The compiled artifact will be available at `target/pdf-quill-1.0-SNAPSHOT.jar`. 
 import java.io.IOException;
 
 import org.pdfquill.PDFQuill;
-import org.pdfquill.PrinterException;
+import org.pdfquill.exceptions.PrinterException;
 import org.pdfquill.barcode.BarcodeType;
 import org.pdfquill.paper.PaperType;
 import org.pdfquill.settings.font.FontSettings;
 
 FontSettings fontSettings = new FontSettings();
-fontSettings.setFontSize(10);
+fontSettings.
+
+setFontSize(10);
 
 PDFQuill quill = PDFQuill.builder()
         .withPaperType(PaperType.THERMAL_56MM)
@@ -40,16 +42,25 @@ PDFQuill quill = PDFQuill.builder()
         .preserveSpaces(true)
         .build();
 
-try {
-    quill.printLine("Sample Store");
-    quill.printLine("Full address line");
-    quill.printBarcode("123456789012", BarcodeType.CODE128);
-    quill.cutSignal();
+try{
+        quill.
 
-    String pdfBase64 = quill.getBase64PDFBytes();
-} catch (PrinterException | IOException e) {
-    // handle failure (retry, log, etc.)
-}
+printLine("Sample Store");
+    quill.
+
+printLine("Full address line");
+    quill.
+
+printBarcode("123456789012",BarcodeType.CODE128);
+    quill.
+
+cutSignal();
+
+String pdfBase64 = quill.getBase64PDFBytes();
+}catch(PrinterException |
+IOException e){
+        // handle failure (retry, log, etc.)
+        }
 ```
 
 ## Rich Text Blocks
