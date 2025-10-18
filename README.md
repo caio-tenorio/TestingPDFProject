@@ -5,7 +5,7 @@ Java library focused on generating print-ready PDFs for receipts, tickets, and o
 ## Key Features
 - PDF generation powered by Apache PDFBox with declarative layout configuration (margins, printable area, line height, lines per page)
 - Support for multiple paper formats (`A4`, `A5`, `THERMAL_56MM`, and more) with thermal paper detection for smart cropping
-- Text printing with automatic word wrapping, mixed font styles per line through `TextBuilder`, optional whitespace preservation, and cut signals via `cutSignal`
+- Text printing with automatic word wrapping, mixed font styles per line through `TextBuilder`, optional whitespace preservation, line skipping helpers (`skipLine`/`skipLines`), and cut signals via `cutSignal`
 - Image and barcode/QR Code rendering using ZXing through `printImage` and `printBarcode`
 - Font customization (`FontSettings`) and basic PDF permission control (`PermissionSettings`)
 - Quick Base64 export (`getBase64PDFBytes`) for easy transport or storage
@@ -43,6 +43,7 @@ PDFQuill quill = PDFQuill.builder()
 try {
     quill.printLine("Sample Store");
     quill.printLine("Full address line");
+    quill.skipLine();
     quill.printBarcode("123456789012", BarcodeType.CODE128);
     quill.cutSignal();
 
@@ -55,24 +56,24 @@ try {
 
 ## Rich Text Blocks
 
-For multi-style lines (bold headers, different sizes, mixed fragments), build a `TextBuilder` and send it to `writeFromTextBuilder`. The writer now handles wrapping per fragment without mutating the original list.
+For multi-style lines (bold headers, different sizes, mixed fragments), build a `TextBuilder` and send it to `writeFromTextBuilder`. The builder accepts `String` overloads—use the variant with `FontSettings` whenever you need to tweak styling for a specific fragment.
 
 ```java
 import java.io.IOException;
 
-import org.pdfquill.Text;
-import org.pdfquill.TextBuilder;
+import org.pdfquill.writer.TextBuilder;
 import org.pdfquill.settings.font.FontSettings;
 import org.pdfquill.settings.font.FontType;
 
+FontSettings regularFont = new FontSettings();
 FontSettings titleFont = new FontSettings();
 titleFont.setSelectedFont(titleFont.getFontByFontType(FontType.BOLD));
 titleFont.setFontSize(16);
 
 TextBuilder builder = new TextBuilder()
-        .addText(new Text("Subtotal: ", new FontSettings()))
-        .addText(new Text("R$ 29,90", titleFont))
-        .addText(new Text(" (promo)", new FontSettings()));
+        .addText("Subtotal: ", regularFont)
+        .addText("R$ 29,90", titleFont)
+        .addText(" (promo)");
 
 try {
     quill.writeFromTextBuilder(builder);
@@ -84,6 +85,7 @@ try {
 ## Configuration Tips
 - **Fonts**: tweak default/bold/italic fonts via `FontSettings` or rely on `configureFontSettings` for inline customization in the builder.
 - **Layout**: instantiate `PageLayout` manually or combine `withPaperType` with `withPageLayout` to customize margins, line height, and maximum line width.
+- **Line breaks**: use `skipLine()` or `skipLines(int)` to insert vertical spacing without emitting text while keeping pagination intact.
 - **Permissions**: enable or disable printing, editing, and content extraction with `withPermissionSettings` or `configurePermissionSettings`.
 - **Whitespace**: call `preserveSpaces(true)` to keep leading spaces, which is handy for manual alignment in receipts.
 - **Images**: `printImage` accepts a `ByteArrayInputStream`; convert files using `Files.readAllBytes(path)`.

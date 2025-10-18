@@ -135,6 +135,32 @@ public class PDFQuill {
     }
 
     /**
+     * Inserts a single blank line, advancing the cursor vertically.
+     *
+     * @return fluent reference to this instance
+     * @throws PrinterException when PDF operations fail
+     */
+    public PDFQuill skipLine() throws PrinterException {
+        return skipLines(1);
+    }
+
+    /**
+     * Inserts {@code lineCount} blank lines, advancing the cursor accordingly.
+     *
+     * @param lineCount number of lines to skip; values &lt;= 0 are ignored
+     * @return fluent reference to this instance
+     * @throws PrinterException when PDF operations fail
+     */
+    public PDFQuill skipLines(int lineCount) throws PrinterException {
+        try {
+            this.pdfWriter.skipLines(lineCount);
+        } catch (IOException e) {
+            throw new PrinterException("Failed to skip lines in the PDF", e);
+        }
+        return this;
+    }
+
+    /**
      * Prints a text block, applying word wrapping and pagination automatically.
      *
      * @param text text to render
