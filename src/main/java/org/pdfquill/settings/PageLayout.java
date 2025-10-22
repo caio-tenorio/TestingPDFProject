@@ -9,14 +9,13 @@ import org.pdfquill.settings.font.FontSettings;
  * used while rendering PDF pages.
  */
 public class PageLayout {
+    private FontSettings fontSettings = new FontSettings();
     // Margins
     private float marginLeft = 4f;
     private float marginRight = 4f;
-    private float marginTop = 8f;
+    private float marginTop = fontSettings.getFontSize();
     private float marginBottom = 4f;
     private float lineSpacing = 1.15f;
-
-    private FontSettings fontSettings = new FontSettings();
 
     private PaperType paperType = PaperType.A4;
 

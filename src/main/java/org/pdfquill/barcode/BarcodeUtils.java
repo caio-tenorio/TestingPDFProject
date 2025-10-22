@@ -31,16 +31,27 @@ public final class BarcodeUtils {
             return BarcodeFormat.CODE_128;
         }
 
-        return switch (barcodeType) {
-            case UPCA -> BarcodeFormat.UPC_A;
-            case UPCE -> BarcodeFormat.UPC_E;
-            case EAN8 -> BarcodeFormat.EAN_8;
-            case EAN13 -> BarcodeFormat.EAN_13;
-            case INTERLEAVED2OF5 -> BarcodeFormat.ITF;
-            case CODE128 -> BarcodeFormat.CODE_128;
-            case CODABAR -> BarcodeFormat.CODABAR;
-            case CODE39 -> BarcodeFormat.CODE_39;
-            case QRCODE -> BarcodeFormat.QR_CODE;
-        };
+        switch (barcodeType) {
+            case UPCA:
+                return BarcodeFormat.UPC_A;
+            case UPCE:
+                return BarcodeFormat.UPC_E;
+            case EAN8:
+                return BarcodeFormat.EAN_8;
+            case EAN13:
+                return BarcodeFormat.EAN_13;
+            case INTERLEAVED2OF5:
+                return BarcodeFormat.ITF;
+            case CODE128:
+                return BarcodeFormat.CODE_128;
+            case CODABAR:
+                return BarcodeFormat.CODABAR;
+            case CODE39:
+                return BarcodeFormat.CODE_39;
+            case QRCODE:
+                return BarcodeFormat.QR_CODE;
+            default:
+                throw new IllegalStateException("Unsupported barcode type: " + barcodeType);
+        }
     }
 }
