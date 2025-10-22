@@ -9,7 +9,10 @@ import org.pdfquill.settings.font.FontSettings;
 import org.pdfquill.settings.font.FontType;
 import org.pdfquill.settings.PageLayout;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +30,67 @@ class PDFQuillTest {
         String second = quill.getBase64PDFBytes();
 
         assertThat(second).isEqualTo(first);
+    }
+
+    @Test
+    void getPDFFileCreatesReusableTempFile() throws Exception {
+        PDFQuill quill = new PDFQuill();
+        quill.printLine("File export");
+
+        File pdfFile = quill.getPDFFile();
+        assertThat(pdfFile)
+                .exists()
+                .hasExtension("pdf");
+
+        byte[] fileBytes = Files.readAllBytes(pdfFile.toPath());
+        String base64 = quill.getBase64PDFBytes();
+        assertThat(fileBytes).isEqualTo(Base64.getDecoder().decode(base64));
+
+        File secondCall = quill.getPDFFile();
+        assertThat(secondCall).isEqualTo(pdfFile);
+    }
+
+    @Test
+    void getPDFBytesReturnsCopyAndMatchesBase64() throws Exception {
+        PDFQuill quill = new PDFQuill();
+        quill.printLine("Bytes test");
+
+        byte[] bytes = quill.getPDFBytes();
+        byte[] original = bytes.clone();
+
+        String base64 = quill.getBase64PDFBytes();
+        assertThat(bytes).isEqualTo(Base64.getDecoder().decode(base64));
+
+        if (bytes.length > 0) {
+            bytes[0] ^= 0xFF;
+        }
+
+        byte[] secondCall = quill.getPDFBytes();
+        assertThat(secondCall).isEqualTo(original);
+    }
+
+    @Test
+    void writePDFWritesToProvidedPath() throws Exception {
+        PDFQuill quill = new PDFQuill();
+        quill.printLine("Custom path");
+
+        Path directory = Files.createTempDirectory("pdf-quill-tests");
+        Path destination = directory.resolve("custom-output.pdf");
+
+        try {
+            Path written = quill.writePDF(destination);
+            assertThat(written).isEqualTo(destination);
+            assertThat(Files.exists(destination)).isTrue();
+
+            byte[] fileBytes = Files.readAllBytes(destination);
+            assertThat(fileBytes).isEqualTo(quill.getPDFBytes());
+
+            File cached = quill.getPDFFile();
+            assertThat(cached.toPath()).isEqualTo(destination);
+        } finally {
+            Files.deleteIfExists(destination);
+            Files.deleteIfExists(directory);
+        }
     }
 
     @Test

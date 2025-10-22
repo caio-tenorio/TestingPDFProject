@@ -16,7 +16,10 @@ import org.pdfquill.writer.TextBuilder;
 import javax.xml.bind.DatatypeConverter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -28,6 +31,7 @@ public class PDFQuill {
     private final PermissionSettings permissionSettings;
     private final PDFWriter pdfWriter;
     private byte[] pdf;
+    private File pdfFile;
 
     /**
      * Creates a printer with default settings (A4 paper, Courier font, default permissions).
@@ -97,16 +101,70 @@ public class PDFQuill {
      * @throws PrinterException when writing the PDF fails
      */
     public String getBase64PDFBytes() throws PrinterException {
-        if (this.pdfWriter.isClosed()) {
-            return DatatypeConverter.printBase64Binary(this.pdf);
+        return DatatypeConverter.printBase64Binary(resolvePdfBytes());
+    }
+
+    /**
+     * Returns the generated PDF as a byte array. The returned array is a copy and can be mutated safely.
+     *
+     * @return PDF bytes
+     * @throws PrinterException when writing the PDF fails
+     */
+    public byte[] getPDFBytes() throws PrinterException {
+        byte[] bytes = resolvePdfBytes();
+        byte[] copy = new byte[bytes.length];
+        System.arraycopy(bytes, 0, copy, 0, bytes.length);
+        return copy;
+    }
+
+    /**
+     * Returns the generated PDF written to a temporary {@link File}.
+     *
+     * @return file containing the PDF bytes; deleted on JVM exit
+     * @throws PrinterException when writing the PDF fails
+     */
+    public File getPDFFile() throws PrinterException {
+        if (this.pdfWriter.isClosed() && this.pdfFile != null && this.pdfFile.exists()) {
+            return this.pdfFile;
         }
 
         try {
-            this.pdf = this.pdfWriter.saveAndGetBytes();
+            File tempFile = File.createTempFile("pdf-quill-", ".pdf");
+            tempFile.deleteOnExit();
+            writePDF(tempFile.toPath());
+            return tempFile;
         } catch (IOException e) {
-            throw new PrinterException("Failed to create PDF", e);
+            throw new PrinterException("Failed to create PDF file", e);
         }
-        return DatatypeConverter.printBase64Binary(this.pdf);
+    }
+
+    /**
+     * Writes the generated PDF into the provided path.
+     *
+     * @param destination target path for the PDF file
+     * @return the same path provided for convenience
+     * @throws PrinterException when writing the PDF fails
+     */
+    public Path writePDF(Path destination) throws PrinterException {
+        if (destination == null) {
+            throw new IllegalArgumentException("destination cannot be null");
+        }
+        if (Files.exists(destination) && Files.isDirectory(destination)) {
+            throw new IllegalArgumentException("destination must be a file path");
+        }
+
+        byte[] pdfBytes = resolvePdfBytes();
+        try {
+            Path parent = destination.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
+            Files.write(destination, pdfBytes);
+            this.pdfFile = destination.toFile();
+            return destination;
+        } catch (IOException e) {
+            throw new PrinterException("Failed to write PDF to destination", e);
+        }
     }
 
     /**
@@ -115,7 +173,23 @@ public class PDFQuill {
      * @throws PrinterException when saving fails
      */
     public void close() throws PrinterException {
-        this.getBase64PDFBytes();
+        resolvePdfBytes();
+    }
+
+    private byte[] resolvePdfBytes() throws PrinterException {
+        if (this.pdfWriter.isClosed()) {
+            if (this.pdf == null) {
+                throw new PrinterException("PDF content is not available after closure");
+            }
+            return this.pdf;
+        }
+
+        try {
+            this.pdf = this.pdfWriter.saveAndGetBytes();
+        } catch (IOException e) {
+            throw new PrinterException("Failed to create PDF", e);
+        }
+        return this.pdf;
     }
 
     /**
