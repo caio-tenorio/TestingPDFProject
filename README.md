@@ -11,8 +11,12 @@ Java library focused on generating print-ready PDFs for receipts, tickets, and o
 - Quick Base64 export (`getBase64PDFBytes`) for easy transport or storage
 
 ## Requirements
-- JDK 21+
+- JDK 8+ (compiled for Java 8 bytecode; runs on newer JDKs as well)
 - Maven 3.9+
+
+## Java Version Support
+- Source and target compatibility set to Java 8 for broad runtime support.
+- Verified with JDK 8; the published JAR works unchanged on modern JDKs (11, 17, 21, ...).
 
 ## Build
 ```bash

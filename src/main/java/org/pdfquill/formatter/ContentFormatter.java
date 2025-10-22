@@ -166,7 +166,7 @@ public class ContentFormatter {
 
             if (breakIdx == start) breakIdx = end;
 
-            lines.add(text.substring(start, breakIdx).stripTrailing());
+            lines.add(ContentFormatter.stripTrailingWhitespace(text.substring(start, breakIdx)));
 
             start = breakIdx;
             while (start < n && Character.isWhitespace(text.charAt(start))) start++;
@@ -215,6 +215,14 @@ public class ContentFormatter {
         return value.substring(index);
     }
 
+    public static String stripTrailingWhitespace(String value) {
+        int end = value.length();
+        while (end > 0 && Character.isWhitespace(value.charAt(end - 1))) {
+            end--;
+        }
+        return value.substring(0, end);
+    }
+
     public static SplitParts splitText(Text text, float availableWidth) throws IOException {
         PDType1Font font = text.getFontSetting().getSelectedFont();
         int fontSize = text.getFontSetting().getFontSize();
@@ -229,7 +237,7 @@ public class ContentFormatter {
             return new SplitParts(content, null);
         }
 
-        String head = content.substring(0, breakIdx).stripTrailing();
+        String head = ContentFormatter.stripTrailingWhitespace(content.substring(0, breakIdx));
         String tail = ContentFormatter.stripLeadingWhitespace(content.substring(breakIdx));
 
         if (head.isEmpty()) {
