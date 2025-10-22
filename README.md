@@ -8,7 +8,7 @@ Java library focused on generating print-ready PDFs for receipts, tickets, and o
 - Text printing with automatic word wrapping, mixed font styles per line through `TextBuilder`, optional whitespace preservation, line skipping helpers (`skipLine`/`skipLines`), and cut signals via `cutSignal`
 - Image and barcode/QR Code rendering using ZXing through `printImage` and `printBarcode`
 - Font customization (`FontSettings`) and basic PDF permission control (`PermissionSettings`)
-- Quick Base64 export (`getBase64PDFBytes`) for easy transport or storage
+- Output helpers: Base64 (`getBase64PDFBytes`), raw bytes (`getPDFBytes`), temp files (`getPDFFile`), or custom paths via `writePDF(Path)`
 
 ## Requirements
 - JDK 8+ (compiled for Java 8 bytecode; runs on newer JDKs as well)
@@ -27,7 +27,9 @@ The compiled artifact will be available at `target/pdf-quill-1.0-SNAPSHOT.jar`. 
 ## Quick Start
 
 ```java
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 import org.pdfquill.PDFQuill;
 import org.pdfquill.exceptions.PrinterException;
@@ -52,11 +54,21 @@ try {
     quill.cutSignal();
 
     String pdfBase64 = quill.getBase64PDFBytes();
-    // send pdfBase64 to printer, API, etc.
+    byte[] pdfBytes = quill.getPDFBytes();
+    File pdfFile = quill.getPDFFile();
+    // Or write to a specific location:
+    quill.writePDF(Paths.get("/tmp/receipt.pdf"));
+    // send pdfBase64/pdfBytes/pdfFile to printer, API, etc.
 } catch (PrinterException | IOException e) {
     // handle failure (retry, log, etc.)
 }
 ```
+
+## Output Options
+- `getPDFBytes()`: returns the PDF bytes; modify or persist them as needed.
+- `getBase64PDFBytes()`: returns a Base64 string, convenient for transport over JSON or HTTP APIs.
+- `getPDFFile()`: writes the document to a temporary `.pdf` file (deleted on JVM exit) and returns it for direct printing or storage.
+- `writePDF(Path)`: writes to any provided location, creating parent directories when necessary.
 
 ## Rich Text Blocks
 
